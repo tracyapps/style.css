@@ -24,7 +24,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { __unstable__loadDesignSystem } from "@tailwindcss/node";
+import { compile, __unstable__loadDesignSystem } from "@tailwindcss/node";
 import {
   descriptions,
   examples,
@@ -377,6 +377,10 @@ for (let index = 0; index < candidates.length; index++) {
   );
   const category = template?.category ?? categoryFor(property ?? "", name);
   const core = descriptions[property];
+  const responsive = name.match(/^((?:max-)?(?:sm|md|lg|xl|2xl)):/)?.[1];
+  const pixels = { sm: 640, md: 768, lg: 1024, xl: 1280, "2xl": 1536 }[
+    responsive?.replace(/^max-/, "")
+  ];
   const description = template
     ? `Template: ${template.syntax}. Shown class is a compiler-verified example. Replace the parameter with a valid CSS value; underscores represent spaces inside brackets.`
     : core &&
@@ -392,12 +396,15 @@ for (let index = 0; index < candidates.length; index++) {
     mode: "tailwind",
     name,
     category,
-    description,
+    description: responsive
+      ? `Responsive utility: active ${responsive.startsWith("max-") ? "below" : "at and above"} ${pixels}px (${pixels / 16}rem). Base classes apply to all sizes; sm: is not a mobile-only modifier.`
+      : description,
     syntax: template?.syntax ?? name,
     values: values.slice(0, 8),
     code,
     tags: unique([
       category.toLowerCase(),
+      ...(responsive ? ["responsive", "mobile", "breakpoint", responsive] : []),
       ...(property ? [property] : []),
       ...(core
         ? [
@@ -489,6 +496,34 @@ for (const entry of selectorEntries)
     .slice(0, 8)
     .map((x) => x.id);
 const entries = [...tailwindEntries, ...cssEntries, ...selectorEntries];
+const previewCompiler = await compile(
+  '@import "tailwindcss/theme.css" theme(static); @tailwind utilities;',
+  { base: root, onDependency() {} },
+);
+const previewRuntime = previewCompiler.build([
+  "shadow-lg",
+  "inset-shadow-sm",
+  "text-shadow-lg",
+  "drop-shadow-lg",
+  "blur-md",
+  "backdrop-blur-lg",
+  "rotate-45",
+  "translate-x-4",
+  "scale-125",
+  "skew-x-12",
+  "ring-2",
+  "outline-2",
+  "animate-spin",
+  "animate-bounce",
+  "animate-pulse",
+  "animate-ping",
+  "bg-linear-to-r",
+]);
+await fs.writeFile(
+  path.join(root, "src/data/preview-runtime.css"),
+  previewRuntime,
+);
+
 const metadata = {
   generated: new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Chicago",

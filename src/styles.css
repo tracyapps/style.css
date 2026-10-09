@@ -1798,3 +1798,281 @@ pre {
     right: 0;
   }
 }
+/* The cover scrolls away; the entire reference desk then fits one viewport. */
+html {
+  overscroll-behavior-y: none;
+}
+.reference-desk {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg);
+}
+.reference-desk > .topline {
+  flex: none;
+  background: var(--bg);
+}
+.reference-desk > main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.desk-controls {
+  flex: none;
+  background: var(--bg);
+}
+.workbench-toolbar {
+  padding-top: 10px;
+}
+.workspace {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
+}
+.sidebar,
+.results-list,
+.detail-panel {
+  overscroll-behavior: contain;
+}
+.results-list {
+  min-height: 0;
+  max-height: none;
+}
+.detail-panel {
+  height: 100%;
+  min-height: 0;
+}
+.reference-desk > .app-footer {
+  flex: none;
+  min-height: 0;
+  height: 44px;
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+}
+.responsive-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-top: 0;
+  padding: 8px 13px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.responsive-bar label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.responsive-bar select {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  padding: 5px 8px;
+  font-size: 11px;
+  min-width: 0;
+}
+.responsive-bar button {
+  color: var(--pink);
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-size: 11px;
+}
+.family-picker {
+  padding: 11px 12px;
+  margin: 10px 0 12px;
+  background: var(--surface);
+  border: 1px dashed var(--line);
+}
+.family-picker label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+}
+.family-picker label > span {
+  font-family: "IBM Plex Sans", sans-serif;
+  color: var(--muted);
+  font-size: 11px;
+}
+.family-picker select {
+  flex: 1 1 100%;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  padding: 7px;
+  margin-top: 3px;
+}
+.family-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+}
+.family-values button {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  padding: 5px 7px;
+}
+.family-values button.active {
+  color: var(--black);
+  border-color: var(--pink);
+  background: var(--pink);
+}
+.preview-note {
+  margin-top: 12px;
+}
+.live-preview {
+  border: 1px solid #c1bead;
+  background: var(--paper);
+  color: var(--black);
+  box-shadow: 3px 3px #0002;
+}
+.preview-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px dashed #b6b3a5;
+  padding: 7px 9px;
+  font-size: 10px;
+}
+.preview-controls label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.preview-controls select {
+  color: var(--black);
+  border: 1px solid #aaa99a;
+  padding: 4px;
+  background: #ffffff60;
+  font-size: 10px;
+}
+.breakpoint-status {
+  background: #ddd8c8;
+  color: #5d5a52;
+  padding: 4px 6px;
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+}
+.breakpoint-status.active {
+  background: #dce97b;
+  color: #3d481c;
+}
+.preview-window {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+.preview-note .live-preview iframe,
+.live-preview iframe {
+  display: block;
+  border: 0;
+  max-width: none;
+  box-shadow: none;
+  background: var(--paper);
+}
+@media (max-width: 760px) {
+  .workspace {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .workspace.show-detail {
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .show-detail .detail-wrap {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .mobile-back {
+    flex: none;
+  }
+  .detail-panel {
+    flex: 1;
+    overflow: auto;
+    height: auto;
+    min-height: 0;
+  }
+  .results-pane {
+    min-height: 0;
+  }
+  .responsive-bar {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 7px 10px;
+    font-size: 10px;
+  }
+  .responsive-bar label {
+    width: 100%;
+  }
+  .responsive-bar select {
+    flex: 1;
+    font-size: 10px;
+    padding: 4px;
+  }
+  .responsive-bar > span {
+    font-size: 9px;
+  }
+  .responsive-bar button {
+    font-size: 9px;
+  }
+  .reference-desk > .app-footer {
+    height: 40px;
+    padding: 5px 0;
+    font-size: 7px;
+  }
+  .sidebar {
+    min-height: 39px;
+    padding: 5px;
+  }
+  .family-picker {
+    padding: 8px;
+  }
+  .preview-controls {
+    gap: 5px;
+  }
+}
+@media (max-height: 550px) {
+  .reference-desk .topline {
+    height: 40px;
+  }
+  .workbench-toolbar {
+    padding-top: 5px;
+  }
+  .mode-tabs button {
+    padding-top: 8px;
+    padding-bottom: 8px;
+    min-height: 34px;
+  }
+  .search-strip {
+    padding: 7px;
+  }
+  .search-field {
+    height: 37px;
+  }
+  .reference-desk > .app-footer {
+    height: 30px;
+  }
+  .detail-panel {
+    padding-top: 16px;
+  }
+}

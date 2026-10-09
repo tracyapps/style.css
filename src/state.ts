@@ -6,6 +6,7 @@ export interface ViewState {
   selected: string;
   scope: string;
   scroll: number;
+  variant?: string;
 }
 export interface AppState {
   mode: Mode;
@@ -24,6 +25,7 @@ const view = (selected: string): ViewState => ({
   selected,
   scope: "all",
   scroll: 0,
+  variant: "",
 });
 export const defaults = (): AppState => ({
   mode: "tailwind",
@@ -67,7 +69,21 @@ export function readState(storage: Pick<Storage, "getItem">): {
         !["query", "category", "sort", "selected", "scope"].every(
           (k) => typeof v[k] === "string",
         ) ||
-        !Number.isFinite(v.scroll)
+        !Number.isFinite(v.scroll) ||
+        (v.variant !== undefined &&
+          ![
+            "",
+            "sm",
+            "md",
+            "lg",
+            "xl",
+            "2xl",
+            "max-sm",
+            "max-md",
+            "max-lg",
+            "max-xl",
+            "max-2xl",
+          ].includes(v.variant))
       )
         throw new Error("Invalid view");
     }

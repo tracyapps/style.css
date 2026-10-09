@@ -14,14 +14,21 @@ import type { AppState } from "../state";
 import { byId, meta } from "../reference";
 import { demoFor, initialValue, previewDocument } from "../demo";
 import Code from "./CodeBlock";
+import LivePreview from "./LivePreview";
+import runtime from "../data/preview-runtime.css?raw";
+import type { EntryFamily } from "../families";
 export default function Detail({
   entry,
   state,
   save,
   select,
   toast,
+  family,
+  prefix,
 }: {
   entry: Entry;
+  family?: EntryFamily;
+  prefix: string;
   state: AppState;
   save: (s: AppState) => void;
   select: (e: Entry) => void;
@@ -33,9 +40,12 @@ export default function Detail({
   const detailRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setValue(initialValue(entry));
+  }, [entry.id]);
+  const referenceGroup = family?.key || entry.id;
+  useEffect(() => {
     setTab("reference");
     detailRef.current?.scrollTo(0, 0);
-  }, [entry.id]);
+  }, [referenceGroup]);
   const bookmarked = state.bookmarks.includes(entry.id);
   const cssEntry =
     entry.mode === "tailwind"
@@ -52,7 +62,7 @@ export default function Detail({
     }
   };
   const demo = demoFor(entry, value, direction);
-  const doc = previewDocument(demo.html, demo.css);
+  const doc = previewDocument(demo.html, demo.css, runtime);
   const related = [...new Set(entry.related)]
     .map((id) => byId.get(id))
     .filter(
@@ -102,6 +112,48 @@ export default function Detail({
           <Bookmark size={21} fill={bookmarked ? "currentColor" : "none"} />
         </button>
       </div>
+      {family && family.members.length > 1 && (
+        <div className="family-picker">
+          <label>
+            {family.name}{" "}
+            <span>· {family.members.length.toLocaleString()} choices</span>
+            <select
+              aria-label="Choose a class in this family"
+              value={entry.id}
+              onChange={(e) => {
+                const chosen = byId.get(e.target.value);
+                if (chosen) select(chosen);
+              }}
+            >
+              {[...family.members]
+                .sort((a, b) =>
+                  a.name.localeCompare(b.name, undefined, { numeric: true }),
+                )
+                .map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <div className="family-values">
+            {family.members
+              .filter((e) => /-\d+(?:\.\d+)?$/.test(e.name))
+              .slice(0, 12)
+              .map((e) => (
+                <button
+                  key={e.id}
+                  className={e.id === entry.id ? "active" : ""}
+                  aria-label={`Choose ${e.name}`}
+                  aria-pressed={e.id === entry.id}
+                  onClick={() => select(e)}
+                >
+                  {e.name.split("-").at(-1)}
+                </button>
+              ))}
+          </div>
+        </div>
+      )}
       <p className="entry-description">{entry.description}</p>
       <div className="detail-tabs">
         <button
@@ -122,6 +174,27 @@ export default function Detail({
       </div>
       {tab === "reference" ? (
         <>
+          <div className="preview-note">
+            <div className="section-label">
+              SEE IT IN ACTION{" "}
+              <span className="handwritten">a little show & tell ↴</span>
+            </div>
+            <LivePreview
+              document={doc}
+              title={`Live example of ${entry.name}`}
+              prefix={prefix}
+            />
+            <div className="preview-caption">
+              {demo.kind === "decoration"
+                ? "Underline supplied so decoration color, style, and thickness are visible."
+                : demo.kind === "alignment"
+                  ? "Three items. One container. A little room to move."
+                  : "Illustrative sandbox · switch to Play with it to inspect the example."}
+              <button onClick={() => setTab("try")}>
+                Tinker <SlidersHorizontal size={13} />
+              </button>
+            </div>
+          </div>
           <div className="section-label">
             THE SHORT VERSION <span>✂</span>
           </div>
@@ -145,25 +218,6 @@ export default function Detail({
               Tailwind project.
             </p>
           )}
-          <div className="preview-note">
-            <div className="section-label">
-              SEE IT IN ACTION{" "}
-              <span className="handwritten">a little show & tell ↴</span>
-            </div>
-            <iframe
-              title={`Live example of ${entry.name}`}
-              sandbox=""
-              srcDoc={doc}
-            />
-            <div className="preview-caption">
-              {demo.kind === "alignment"
-                ? "Three items. One container. A little room to move."
-                : "Illustrative sandbox · switch to Play with it to inspect the example."}
-              <button onClick={() => setTab("try")}>
-                Tinker <SlidersHorizontal size={13} />
-              </button>
-            </div>
-          </div>
           {entry.mode !== "tailwind" && (
             <>
               <div className="section-label">
@@ -247,11 +301,11 @@ export default function Detail({
               </label>
             )}
           </div>
-          <iframe
-            className="lab-frame"
+          <LivePreview
+            document={doc}
             title={`Interactive preview of ${entry.name}`}
-            sandbox=""
-            srcDoc={doc}
+            prefix={prefix}
+            lab
           />
           <p className="small-muted">
             A contained example. Browser behavior depends on the surrounding

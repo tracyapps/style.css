@@ -9,10 +9,12 @@
 | Generated snapshot | `src/data/catalog.json`, `src/data/metadata.json` | Package versions and support snapshot date visible; no fabricated compatibility |
 | Transfer packing | `scripts/pack-data.mjs`, `src/catalog.ts`, `src/catalog-codec.ts` | Small gzip asset loads independently of app JS; plain JSON fallback available |
 | Search | `src/search.ts` | All matching entries searched before rendering limits; values/grammar searchable; exact names rank first |
+| Class families | `src/families.ts`, `src/components/FamilyRow.tsx` | Group after filtering; preserve every matching class, palette and property; exact searches remain exact |
+| Responsive modifiers | `src/responsive.ts`, `src/components/LivePreview.tsx` | Default min/max breakpoints wrap each utility; copy includes prefix; iframe uses real width and reports whether the rule applies |
 | Preferences | `src/state.ts` | Independent section state; malformed storage is preserved until reset; blocked storage degrades to session-only |
 | Interaction | `src/App.tsx`, `src/components/CodeBlock.tsx`, `src/components/ReferenceDetail.tsx` | Copy success requires clipboard success; related links select entries; modal keyboard focus contained |
-| Examples | `src/demo.ts` | No script execution/external requests; item versus container alignment modeled; compiled Tailwind theme used |
-| Art/theme | `src/styles.css`, `public/collage.png` | Readable code/control states, responsive layout, dark/light/system and independent code themes |
+| Examples | `src/demo.ts`, `src/data/preview-runtime.css` | No script execution/external requests; item versus container alignment modeled; decoration context supplied; baselines never override utility specificity; compiler provides theme and shared registrations |
+| Art/theme | `src/styles.css`, `public/collage.png` | Readable code/control states, responsive layout, dark/light/system and independent code themes; docked desk fits viewport with contained pane scrolling |
 
 The app is static and needs no backend. Keep personal preferences in an isolated storage adapter so future native or synced storage can replace localStorage without rewriting catalogs/search.
 

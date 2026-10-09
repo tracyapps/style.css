@@ -22,13 +22,15 @@ Point Unite at the preview address instead (normally port 4173). This is a local
 
 ## What's included
 
-- Live search across 23,312 Tailwind entries, 672 CSS properties, and 67 selector guides.
+- Live search across 23,321 Tailwind entries, 672 CSS properties, and 67 selector guides. Similar utilities appear as families; choose a precise shade, size or value inside the reference.
 - All finite utilities exposed by Tailwind 4.3.3's default design system, plus representative arbitrary-value and variant templates. Numeric/arbitrary utilities and arbitrary combinations are open-ended; your project's custom theme is not indexed.
 - CSS's full formal grammar, recursively discovered keywords/types/functions, and CSS-wide keywords. Some grammar tokens are not standalone CSS values; they remain searchable and appear as dashed chips. Enter full values in the lab.
 - Related references, CSS equivalents, common shortcuts, recent searches/references, bookmarks, category filters, relevance/alphabetical/recent sorting, and copy controls.
+- Responsive modifiers for every indexed utility: `sm:`, `md:`, `lg:`, `xl:`, `2xl:` and their `max-` counterparts. Use the breakpoint selector or type the prefix in search. Base utilities apply at every size; `sm:` starts at 640px. These are Tailwind's default breakpoints; project overrides are not indexed.
 - Independent search/filter/sort/selection/list positions in each section, restored from browser storage. Recent searches are recorded after a pause in typing.
 - Syntax highlighting using Prism, with Midnight, Candy and Paper themes. Dark by default; Light and System options follow your choice.
-- A contained example lab, especially for flex/grid alignment. Demos are illustrative: container/item context and individual browser support matter. The Tailwind example environment includes the default theme; advanced compositional effects can require further utilities. Shared Tailwind property registrations are supplied by Tailwind itself and omitted from per-class reference snippets.
+- A contained example lab, especially for flex/grid alignment. Decoration examples supply an underline so colors, styles and thickness visibly change. Preview widths use real iframe viewports and scale to fit the panel; responsive rules can be compared below and above their breakpoint. Demos are illustrative: container/item context and individual browser support matter. The Tailwind example environment includes the default theme, shared property registrations and animation keyframes; advanced compositional effects can require further utilities. Registrations are omitted from per-class reference snippets.
+- Once the cover scrolls away, the reference desk fills the current browser height: header and footer stay at its edges while results and references scroll independently.
 - Versioned MDN property/selector browser compatibility and links to full MDN tables, Tailwind, Caniuse, CSS-Tricks, W3Schools and the original selector article.
 - Responsive layout, keyboard focus, reduced-motion support, self-hosted fonts and art. No runtime account, API key or external data request is needed to search. Documentation links leave the app; sandbox examples block scripts and external resources.
 

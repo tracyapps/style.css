@@ -1,6 +1,4 @@
 import type { Entry } from "./types";
-import tailwindTheme from "tailwindcss/theme.css?raw";
-const theme = tailwindTheme.replace(/@theme[^\{]*\{/g, ":root {");
 const escape = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 export function initialValue(entry: Entry) {
@@ -11,6 +9,15 @@ export function initialValue(entry: Entry) {
 export function demoFor(entry: Entry, value: string, direction: string) {
   const property =
     entry.cssProperty || (entry.mode === "css" ? entry.name : "");
+  const tw = entry.mode === "tailwind";
+  const utility = escape(entry.name);
+  if (/^(text-decoration|text-underline-offset)/.test(property)) {
+    return {
+      html: `<p class="sample ${tw ? utility : ""}">Make code fun.<br/>One good underline.</p>`,
+      css: `:where(.sample) { margin: 24px 12px; color: #252522; font: 24px/1.8 system-ui; text-decoration-line: underline; text-decoration-color: #e879ad; text-decoration-thickness: 3px; text-underline-offset: 6px; }\n${tw ? entry.code : `.sample { ${property}: ${value}; }`}`,
+      kind: "decoration",
+    };
+  }
   if (/^(align-|justify-|place-)/.test(property)) {
     const grid =
       property.includes("justify-items") ||
@@ -20,10 +27,10 @@ export function demoFor(entry: Entry, value: string, direction: string) {
     const wrapping =
       property === "align-content" || property === "place-content";
     const count = wrapping ? 6 : 3;
-    const html = `<div class="demo">${Array.from({ length: count }, (_, i) => `<span>${String(i + 1).padStart(2, "0")}</span>`).join("")}</div>`;
+    const html = `<div class="demo ${tw && !self ? utility : ""}">${Array.from({ length: count }, (_, i) => `<span class="${tw && self && i === 1 ? utility : ""}">${String(i + 1).padStart(2, "0")}</span>`).join("")}</div>`;
     return {
       html,
-      css: `.demo { display: ${grid ? "grid" : "flex"}; ${grid ? "grid-template-columns: repeat(3, 60px);" : `flex-direction: ${direction};`} ${wrapping && !grid ? "flex-wrap: wrap; width: 230px;" : ""} ${self ? "" : `${property}: ${value};`} gap: 8px; height: 170px; }\n.demo span { padding: 10px; background: #e6ef75; color: #232321; border: 2px solid #232321; ${wrapping ? "width: 60px; height: 44px;" : "min-width: 40px;"} }\n.demo span:nth-child(2) { background: #ef9cb7; ${self ? `${property}: ${value};` : wrapping ? "" : "min-height: 56px;"} }`,
+      css: `:where(.demo) { display: ${grid ? "grid" : "flex"}; ${grid ? "grid-template-columns: repeat(3, 60px);" : `flex-direction: ${direction};`} ${wrapping && !grid ? "flex-wrap: wrap; width: 230px;" : ""} gap: 8px; height: 170px; align-items: start; } :where(.demo span) { padding: 10px; background: #e6ef75; color: #232321; border: 2px solid #232321; ${wrapping ? "width: 60px; height: 44px;" : "min-width: 40px;"} } :where(.demo span:nth-child(2)) { background: #ef9cb7; ${wrapping ? "" : "min-height: 56px;"} }\n${tw ? entry.code : `${self ? ".demo span:nth-child(2)" : ".demo"} { ${property}: ${value}; }`}`,
       kind: "alignment",
     };
   }
@@ -67,18 +74,49 @@ export function demoFor(entry: Entry, value: string, direction: string) {
       kind: "selector",
     };
   }
-  if (entry.mode === "tailwind") {
+  if (tw) {
     const container =
       /^(display|flex-direction|flex-wrap|grid-|gap|row-gap|column-gap)/.test(
         property,
       );
-    const html = container
-      ? `<div class="demo ${escape(entry.name)}"><span>01</span><span>02</span><span>03</span><span>04</span><span>05</span><span>06</span></div>`
-      : `<div class="demo"><div class="scrap ${escape(entry.name)}">Make something<br/><strong>a little weird.</strong></div></div>`;
+    let html = container
+      ? `<div class="demo ${utility}"><span>01</span><span>02</span><span>03</span><span>04</span><span>05</span><span>06</span></div>`
+      : `<div class="demo"><div class="scrap ${utility}">Make something<br/>a little weird.</div></div>`;
+    let context = "";
+    let kind = "utility";
+    if (property === "grid-template-columns") {
+      context =
+        ":where(.demo) { grid-template-columns: 1fr; } :where(.demo span) { padding: 0; height: 18px; font: 12px/14px system-ui; text-align: center; }";
+      kind = "grid-columns";
+    } else if (
+      /^(font|text-|line-height|letter-spacing|word|white-space|hyphens)/.test(
+        property,
+      )
+    ) {
+      html = `<div class="demo"><p class="sample ${utility}">Letters with a little attitude.<br/>Pack my box with five dozen liquor jugs.</p></div>`;
+      context =
+        ":where(.sample) { font: 24px/1.6 system-ui; margin: 8px; max-width: 420px; color:#252522; }";
+      kind = "typography";
+    } else if (/^(fill|stroke)/.test(property)) {
+      html = `<svg class="sample ${utility}" viewBox="0 0 180 90" width="240" height="130" role="img" aria-label="Two shapes showing the selected SVG style"><circle cx="48" cy="45" r="30"/><rect x="100" y="15" width="60" height="60"/></svg>`;
+      context =
+        ":where(svg.sample) { fill:#efa3bd; stroke:#252522; stroke-width:4px; }";
+      kind = "svg";
+    } else if (/^(overflow|overscroll)/.test(property)) {
+      html = `<div class="demo"><div class="scrap ${utility}"><p>A long scrap that spills outside the box. A long scrap that spills outside the box.</p></div></div>`;
+      context =
+        ":where(.scrap) { width:180px; height:100px; } :where(.scrap p) { width:330px; height:160px; margin:0; background:#efa3bd; padding:12px; }";
+      kind = "overflow";
+    } else if (/^(outline)/.test(property))
+      context =
+        ":where(.scrap) { outline:3px solid #d74b85; outline-offset:4px; margin:10px; }";
+    else if (/^(filter|backdrop-filter)/.test(property))
+      context =
+        ":where(.demo) { background: repeating-linear-gradient(45deg,#efa3bd 0px,#efa3bd 15px,#e8f178 15px,#e8f178 30px); } :where(.scrap) { background:rgb(255 255 255 / .55); }";
     return {
       html,
-      css: `${theme}\n:root { --brand: #ef9cb7; --panel-width: 180px; } .demo { display: ${property.startsWith("flex") ? "flex" : "grid"}; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 16px; } .demo span, .scrap { padding: 14px; border: 2px solid #242522; background-color: #e6ef75; color: #242522; font: 18px system-ui; } .scrap { grid-column: 1 / -1; }\n${entry.code}`,
-      kind: "utility",
+      css: `:root { --brand: #ef9cb7; --panel-width: 180px; } :where(.demo) { display:${property.startsWith("flex") ? "flex" : "grid"}; grid-template-columns: repeat(3, 1fr); gap:8px; padding:16px; } :where(.demo span,.scrap) { padding:14px; border:2px solid #242522; background-color:#e6ef75; color:#242522; font:18px system-ui; } :where(.scrap) { grid-column:1 / -1; } ${context}\n${entry.code}`,
+      kind,
     };
   }
   const grid = /^grid-|^(gap|row-gap|column-gap)$/.test(property);
@@ -94,6 +132,6 @@ export function demoFor(entry: Entry, value: string, direction: string) {
     kind: grid || flex ? "layout" : "generic",
   };
 }
-export function previewDocument(html: string, css: string) {
-  return `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:;"><style>body{margin:14px;font:14px system-ui;color:#252522}*{box-sizing:border-box}${css}</style></head><body>${html}</body></html>`;
+export function previewDocument(html: string, css: string, runtime = "") {
+  return `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"/><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:;"><style>body{margin:14px;font:14px system-ui;color:#252522}*{box-sizing:border-box}${runtime}\n${css}</style></head><body>${html}</body></html>`;
 }

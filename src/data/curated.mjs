@@ -581,9 +581,22 @@ export const arbitrary = [
   ["[&>p]:text-blue-500", "[<selector>]:<utility>", "Variants"],
   ["hover:bg-blue-500", "hover:<utility>", "Variants"],
   ["focus-visible:outline-2", "focus-visible:<utility>", "Variants"],
-  ["md:grid-cols-3", "md:<utility>", "Variants"],
+  ["md:grid-cols-3", "md:<utility>", "Responsive"],
   ["dark:bg-slate-900", "dark:<utility>", "Variants"],
   ["group-hover:opacity-100", "group-hover:<utility>", "Variants"],
   ["peer-checked:block", "peer-checked:<utility>", "Variants"],
   ["has-[img]:p-4", "has-[<selector>]:<utility>", "Variants"],
 ];
+
+// Responsive modifiers are examples of a prefix that can wrap every utility.
+arbitrary.push(
+  ["sm:grid-cols-2", "sm:<utility>", "Responsive"],
+  ["lg:grid-cols-4", "lg:<utility>", "Responsive"],
+  ["xl:grid-cols-5", "xl:<utility>", "Responsive"],
+  ["2xl:grid-cols-6", "2xl:<utility>", "Responsive"],
+  ["max-sm:grid-cols-1", "max-sm:<utility>", "Responsive"],
+  ["max-md:grid-cols-2", "max-md:<utility>", "Responsive"],
+  ["max-lg:grid-cols-3", "max-lg:<utility>", "Responsive"],
+  ["max-xl:grid-cols-4", "max-xl:<utility>", "Responsive"],
+  ["max-2xl:grid-cols-5", "max-2xl:<utility>", "Responsive"],
+);
