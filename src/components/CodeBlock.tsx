@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Copy, Check } from "lucide-react";
+import { useMemo } from "react";
+import CopyButton from "./CopyButton";
 import Prism from "prismjs";
 import "prismjs/components/prism-css";
 export default function Code({
@@ -13,10 +13,6 @@ export default function Code({
   onCopy: (s: string) => Promise<void>;
   title?: string;
 }) {
-  const [copied, setCopied] = useState(false);
-  useEffect(() => {
-    setCopied(false);
-  }, [code]);
   const tokens = useMemo(
     () =>
       Prism.highlight(
@@ -34,21 +30,12 @@ export default function Code({
           <i />
           <i /> <b>{title}</b>
         </span>
-        <button
-          aria-label={`Copy ${title}`}
-          onClick={async () => {
-            try {
-              await onCopy(code);
-              setCopied(true);
-            } catch {
-              return;
-            }
-            window.setTimeout(() => setCopied(false), 1600);
-          }}
-        >
-          {copied ? <Check size={14} /> : <Copy size={14} />}{" "}
-          {copied ? "Copied!" : "Copy"}
-        </button>
+        <CopyButton
+          text={code}
+          label={`Copy ${title}`}
+          caption="Copy"
+          onCopy={onCopy}
+        />
       </div>
       <pre>
         <code dangerouslySetInnerHTML={{ __html: tokens }} />

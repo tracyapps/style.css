@@ -635,6 +635,48 @@ h1 {
 .result-row.selected .row-bookmark.bookmarked {
   color: #ad326a;
 }
+.copy-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px;
+  color: var(--muted);
+  flex: none;
+}
+.copy-button:hover,
+.copy-button.copied {
+  color: var(--pink);
+}
+.row-copy {
+  position: absolute;
+  top: 48px;
+  right: 9px;
+}
+.result-row.selected .row-copy {
+  color: #747367;
+}
+.result-row.selected .row-copy:hover,
+.result-row.selected .row-copy.copied {
+  color: #ad326a;
+}
+.entry-heading > div {
+  min-width: 0;
+  flex: 1;
+}
+.entry-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+}
+.entry-title h2 {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.entry-title > .copy-button {
+  margin-top: 10px;
+}
 .results-bottom {
   font-family: "Space Mono", monospace;
   display: flex;
@@ -1631,6 +1673,10 @@ pre {
   }
   .row-bookmark {
     top: 12px;
+    right: 11px;
+  }
+  .row-copy {
+    top: 46px;
     right: 11px;
   }
   .result-row {

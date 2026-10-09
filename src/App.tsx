@@ -181,6 +181,15 @@ export default function App() {
     );
   };
   const toast = (text: string) => setNotice(text);
+  const copy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast("Copied. Go make something.");
+    } catch {
+      toast("Clipboard unavailable. Select and copy the code manually.");
+      throw new Error("Clipboard unavailable");
+    }
+  };
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(""), 3000);
@@ -648,6 +657,7 @@ export default function App() {
                         variant={variant}
                         bookmarks={state.bookmarks}
                         onSelect={select}
+                        onCopy={copy}
                         onBookmark={(e) =>
                           save({
                             ...state,
@@ -693,7 +703,7 @@ export default function App() {
                     state={state}
                     save={save}
                     select={select}
-                    toast={toast}
+                    copy={copy}
                   />
                 )}
               </div>

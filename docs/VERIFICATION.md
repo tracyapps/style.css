@@ -10,5 +10,6 @@
 - Browser errors seen during intermediate source splitting were transient development HMR errors on port 5173. Subsequent TypeScript/production builds passed and the production app on port 4173 was checked directly.
 - Screenshot: `output/style-junkie-desktop.png` (local verification artifact, ignored from version control).
 - Follow-up screenshot: `output/style-junkie-tweaks.png` (local verification artifact, ignored from version control).
+- Copy icons: production browser checks confirmed result-row copying leaves the selected reference open; `md:decoration-green-500` copies with its prefix from results and the title; the compiled-CSS clipboard matches the visible code exactly; a grouped green family copies the selected `decoration-green-800`, not its wildcard. Copy buttons show a temporary checkmark/“Copied!” only after clipboard success. Build passed. Screenshot: `output/style-junkie-copy.png`.
 
 No Vercel deployment, Unite wrapper, native install, offline service worker, screen-reader session or multi-engine execution is claimed. Browser-support badges are MDN BCD's October 8 snapshot; these were not independently tested in every listed browser. Examples outside the core teaching set are illustrative/default-value examples, with additional contextual teaching work listed in the roadmap.

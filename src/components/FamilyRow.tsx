@@ -1,6 +1,7 @@
 import { Bookmark, ChevronRight } from "lucide-react";
 import type { Entry } from "../types";
 import type { EntryFamily } from "../families";
+import CopyButton from "./CopyButton";
 export default function FamilyRow({
   family,
   selected,
@@ -8,6 +9,7 @@ export default function FamilyRow({
   bookmarks,
   onSelect,
   onBookmark,
+  onCopy,
 }: {
   family: EntryFamily;
   selected: Entry;
@@ -15,6 +17,7 @@ export default function FamilyRow({
   bookmarks: string[];
   onSelect: (e: Entry) => void;
   onBookmark: (e: Entry) => void;
+  onCopy: (text: string) => Promise<void>;
 }) {
   const selectedMember = family.members.find(
     (e) => e.id === selected.id || e.name === selected.name,
@@ -26,6 +29,11 @@ export default function FamilyRow({
       ? `${variant}:${family.name}`
       : family.name;
   const saved = bookmarks.includes(entry.id);
+  const copyName =
+    variant && entry.mode === "tailwind" && !entry.name.includes(":")
+      ? `${variant}:${entry.name}`
+      : entry.name;
+  const copyText = entry.mode === "selectors" ? entry.syntax : copyName;
   return (
     <div className={`result-row ${active ? "selected" : ""}`}>
       <button
@@ -50,6 +58,12 @@ export default function FamilyRow({
             ` · ${family.members.length.toLocaleString()} classes`}
         </span>
       </button>
+      <CopyButton
+        text={copyText}
+        label={`Copy ${copyText}`}
+        className="row-copy"
+        onCopy={onCopy}
+      />
       <button
         className={`row-bookmark ${saved ? "bookmarked" : ""}`}
         aria-label={`${saved ? "Unbookmark" : "Bookmark"} ${entry.name}`}

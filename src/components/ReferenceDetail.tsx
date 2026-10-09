@@ -7,13 +7,13 @@ import {
   ExternalLink,
   Braces,
   SlidersHorizontal,
-  Copy,
 } from "lucide-react";
 import type { Entry } from "../types";
 import type { AppState } from "../state";
 import { byId, meta } from "../reference";
 import { demoFor, initialValue, previewDocument } from "../demo";
 import Code from "./CodeBlock";
+import CopyButton from "./CopyButton";
 import LivePreview from "./LivePreview";
 import runtime from "../data/preview-runtime.css?raw";
 import type { EntryFamily } from "../families";
@@ -22,7 +22,7 @@ export default function Detail({
   state,
   save,
   select,
-  toast,
+  copy,
   family,
   prefix,
 }: {
@@ -32,7 +32,7 @@ export default function Detail({
   state: AppState;
   save: (s: AppState) => void;
   select: (e: Entry) => void;
-  toast: (s: string) => void;
+  copy: (text: string) => Promise<void>;
 }) {
   const [tab, setTab] = useState<"reference" | "try">("reference");
   const [value, setValue] = useState("");
@@ -52,15 +52,6 @@ export default function Detail({
       ? byId.get(`css-${entry.cssProperty}`)
       : undefined;
   const support = entry.support || cssEntry?.support;
-  const copy = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast("Copied. Go make something.");
-    } catch {
-      toast("Clipboard unavailable. Select and copy the code manually.");
-      throw new Error("Clipboard unavailable");
-    }
-  };
   const demo = demoFor(entry, value, direction);
   const doc = previewDocument(demo.html, demo.css, runtime);
   const related = [...new Set(entry.related)]
@@ -93,7 +84,14 @@ export default function Detail({
                   : "SELECTOR"}
             </span>
           </div>
-          <h2>{entry.name}</h2>
+          <div className="entry-title">
+            <h2>{entry.name}</h2>
+            <CopyButton
+              text={entry.mode === "selectors" ? entry.syntax : entry.name}
+              label={`Copy ${entry.mode === "tailwind" ? "class name" : entry.mode === "css" ? "property name" : "selector"} ${entry.name}`}
+              onCopy={copy}
+            />
+          </div>
         </div>
         <button
           className={`icon-button save-entry ${bookmarked ? "bookmarked" : ""}`}
@@ -206,9 +204,12 @@ export default function Detail({
           {entry.mode === "tailwind" && (
             <div className="class-snippet">
               <code>{entry.name}</code>
-              <button onClick={() => void copy(entry.name).catch(() => {})}>
-                <Copy size={13} /> Copy class
-              </button>
+              <CopyButton
+                text={entry.name}
+                label="Copy class"
+                caption="Copy class"
+                onCopy={copy}
+              />
             </div>
           )}
           {entry.mode === "tailwind" && (
