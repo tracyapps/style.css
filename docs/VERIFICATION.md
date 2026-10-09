@@ -1,0 +1,10 @@
+# Local verification — October 8, 2026
+
+- `npm test`: six tests passed. Catalog IDs/coverage/related links, CSS grammar keyword search, whole-catalog bookmark/category filters, recent sorting, corrupt-storage preservation and independent views, raw and transparently decoded gzip responses.
+- `npm run build`: TypeScript and Vite production build passed. App JavaScript is split from the catalog; compressed catalog is 680,492 bytes. A Node HTTP check against port 4173 decoded all 24,051 entries from the served asset.
+- Browser (Codex in-app Chromium): Tailwind search narrowed `items-center` to six matches; CSS search found `subgrid` within four grammars; section query/selection and bookmarks survived reload; clipboard contained `items-center` and `bg-pink-500` after clicking Copy class; saved filter showed the bookmarked color; pink utility related links stayed within the pink family; CSS/selector related links worked; Light/Candy and Dark/Midnight preferences applied; selector lab demonstrated the card with a direct image child; alignment lab accepted `space-between`.
+- Responsive checks at 390 × 844 and 1440 × 1000: mobile results/detail navigation worked; body did not overflow the viewport; desktop three-column reference surface and collage rendered. Temporary viewport override was reset.
+- Browser errors seen during intermediate source splitting were transient development HMR errors on port 5173. Subsequent TypeScript/production builds passed and the production app on port 4173 was checked directly.
+- Screenshot: `output/style-junkie-desktop.png` (local verification artifact, ignored from version control).
+
+No Vercel deployment, Unite wrapper, native install, offline service worker, screen-reader session or multi-engine execution is claimed. Browser-support badges are MDN BCD's October 8 snapshot; these were not independently tested in every listed browser. Examples outside the core teaching set are illustrative/default-value examples, with additional contextual teaching work listed in the roadmap.

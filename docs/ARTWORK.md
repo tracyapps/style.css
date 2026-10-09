@@ -1,0 +1,7 @@
+# Collage asset
+
+Generated with the built-in imagegen tool, saved as `public/collage.png`. Original PNG: 1536 × 1024 with alpha transparency.
+
+## Final prompt
+
+Use case: stylized-concept. Asset type: transparent ornamental landscape masthead collage for a CSS/Tailwind reference web app zine called Style Junkie. ONE exuberant surreal handmade 1996 punk photocopy magazine cutout cluster, wide landscape composition (1536x1024 feel). Tall giraffe wearing hot pink bucket hat on left; cream vintage Apple IIe computer with chunky keyboard and CRT at bottom right; pink flamingo rising at right; small black Atari-style joystick; tiny acid yellow taxi/taco truck scrap; small coffee-ring stain; masking tape; cut and torn paper edging; handwritten star doodles. No words. Real tactile photographic magazine clippings, halftone grain, black photocopy outlines, imperfect scissors cuts and torn white paper borders, distressed punk art zine charm. Mostly monochrome clippings with magenta and acid-yellow accents. Attractive wide ornamental cluster with lively asymmetry, overlapping paper scraps and genuinely transparent gaps. Left giraffe is tallest anchor; right flamingo and bottom-right computer balance it. Keep all elements within frame with outer clearance. Tangible fibrous paper, xerox toner grain, rough torn edges, yellowed translucent masking tape, coffee stain on torn paper. True transparent alpha background. No flat background, checkerboard, gradient backdrop, floor, UI, letters, numbers, captions, brand text, watermarks, or words. Exactly one asset.
