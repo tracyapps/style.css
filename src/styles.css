@@ -2,7 +2,7 @@
 :root {
   font-family: "IBM Plex Sans", sans-serif;
   color: #e9e6dc;
-  background: #252523;
+  background: #191917;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -15,7 +15,7 @@
   --pink: #ff5c93;
   --yellow: #f2ff46;
   --paper: #e9e6d9;
-  --black: #242521;
+  --black: #191917;
   --code-bg: #1d2022;
   --code-ink: #dfdfd1;
   --token-property: #b3ff4d;
