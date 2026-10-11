@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=Mynerve&family=Yuyu&display=swap');
 :root {
   font-family: "IBM Plex Sans", sans-serif;
   color: #e9e6dc;
@@ -5,24 +6,26 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  --bg: #252523;
-  --surface: #2d2d29;
-  --surface2: #32322d;
+  --bg: #1b1b1a;
+  --surface: #20201e;
+  --surface2: #222220;
   --ink: #ece9e0;
   --muted: #b4b2a7;
   --line: #4b4b43;
-  --pink: #efa3bd;
-  --yellow: #e8f178;
+  --pink: #ff5c93;
+  --yellow: #f2ff46;
   --paper: #e9e6d9;
   --black: #242521;
   --code-bg: #1d2022;
   --code-ink: #dfdfd1;
-  --token-property: #b5d98a;
-  --token-value: #eaa3bf;
+  --token-property: #b3ff4d;
+  --token-value: #ff619e;
   --token-punctuation: #a9a99f;
-  --token-selector: #efcf90;
+  --token-selector: #fbc964;
   --token-comment: #8a9489;
+  --font-handwritten: "Yuyu", sans-serif;
 }
+
 * {
   box-sizing: border-box;
 }
@@ -222,7 +225,7 @@ h1 {
   padding-left: 8px;
 }
 .handwritten {
-  font-family: "Kalam", cursive;
+  font-family: var(--font-handwritten);
   font-weight: 400;
   font-size: 19px;
   line-height: 1.2;
@@ -688,7 +691,7 @@ h1 {
   color: var(--muted);
 }
 .results-bottom span {
-  font-family: "Kalam", cursive;
+  font-family: var(--font-handwritten);
   font-size: 13px;
 }
 .load-more {
@@ -1192,7 +1195,7 @@ pre {
   gap: 10px;
 }
 .dialog-header h2 {
-  font-family: "Kalam", cursive;
+  font-family: var(--font-handwritten);
   font-weight: 400;
   font-size: 27px;
   margin: 12px 0 18px;
