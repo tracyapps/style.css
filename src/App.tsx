@@ -21,7 +21,9 @@ import { entries, byId, meta } from "./reference";
 import Code from "./components/CodeBlock";
 import Detail from "./components/ReferenceDetail";
 import FamilyRow from "./components/FamilyRow";
-import { familyKey, groupEntries } from "./families";
+import { familyKey, groupEntries, type EntryFamily } from "./families";
+import { CATEGORY_ORDER } from "./grouping";
+import { CategoryIcon, codeThemeIcons } from "./icons";
 import {
   breakpoints,
   parseResponsiveSearch,
@@ -41,26 +43,14 @@ import { findEntries } from "./search";
 
 const modes: Mode[] = ["tailwind", "css", "selectors"];
 const labels = { tailwind: "Tailwind", css: "CSS", selectors: "Selectors" };
-const categoryIcons: Record<string, string> = {
-  Layout: "▦",
-  "Flexbox & Grid": "▤",
-  Spacing: "↔",
-  Sizing: "⤢",
-  Typography: "Aa",
-  Backgrounds: "◩",
-  Borders: "▣",
-  Effects: "✳",
-  Transforms: "⤨",
-  Animation: "◎",
-  Interactivity: "☞",
-  Accessibility: "◉",
-  Colors: "◐",
-};
 const modeEntries = Object.fromEntries(
   modes.map((m) => [m, entries.filter((e) => e.mode === m)]),
 ) as Record<Mode, Entry[]>;
+const modeFamilies = Object.fromEntries(
+  modes.map((m) => [m, groupEntries(modeEntries[m])]),
+) as Record<Mode, EntryFamily[]>;
 const tailwindFamilies = new Map(
-  groupEntries(modeEntries.tailwind).map((f) => [f.key, f]),
+  modeFamilies.tailwind.map((f) => [f.key, f]),
 );
 export default function App() {
   const [initial] = useState(() => {
@@ -94,31 +84,36 @@ export default function App() {
       : "";
   const searchView = { ...view, query: responsiveSearch.query };
   const source = modeEntries[state.mode];
-  const categories = useMemo(
-    () =>
-      [...new Set(source.map((e) => e.category))].sort((a, b) =>
-        a === "Responsive" || a === "Flexbox & Grid"
-          ? -1
-          : b === "Responsive" || b === "Flexbox & Grid"
-            ? 1
-            : a.localeCompare(b),
-      ),
-    [source],
-  );
+  const categories = useMemo(() => {
+    const present = [...new Set(source.map((e) => e.category))];
+    const rank = (c: string) => {
+      if (state.mode !== "tailwind") return 999;
+      const i = (CATEGORY_ORDER as readonly string[]).indexOf(c);
+      return i < 0 ? 998 : i;
+    };
+    return present.sort(
+      (a, b) => rank(a) - rank(b) || a.localeCompare(b),
+    );
+  }, [source, state.mode]);
+  // Stored sidebar buckets can fall out of date after a regroup; treat
+  // unknown categories as "All" instead of showing an empty shelf.
+  const activeCategory = categories.includes(view.category)
+    ? view.category
+    : "All";
   const matches = useMemo(
     () =>
       findEntries(
-        variant && view.category !== "Responsive" && view.scope === "all"
+        variant && activeCategory !== "Responsive" && view.scope === "all"
           ? source.filter((e) => !responsivePrefix(e.name))
           : source,
-        searchView,
+        { ...searchView, category: activeCategory },
         state.bookmarks,
         state.recent,
       ),
     [
       source,
       view.query,
-      view.category,
+      activeCategory,
       view.scope,
       view.sort,
       variant,
@@ -524,21 +519,26 @@ export default function App() {
                   className={`category-button ${view.category === "All" && view.scope === "all" ? "active" : ""}`}
                   onClick={() => patchView({ category: "All", scope: "all" })}
                 >
-                  <span>✳</span> Everything{" "}
-                  <b>{source.length.toLocaleString()}</b>
+                  <span>
+                    <CategoryIcon name="Everything" />
+                  </span>{" "}
+                  Everything{" "}
+                  <b>{modeFamilies[state.mode].length.toLocaleString()}</b>
                 </button>
                 {categories.map((cat) => (
                   <button
                     key={cat}
-                    className={`category-button ${view.category === cat ? "active" : ""}`}
+                    className={`category-button ${activeCategory === cat && view.scope === "all" ? "active" : ""}`}
                     onClick={() => patchView({ category: cat, scope: "all" })}
                   >
-                    <span>{categoryIcons[cat] || "◇"}</span>
+                    <span>
+                      <CategoryIcon name={cat} />
+                    </span>
                     {cat}
                     <b>
-                      {source
-                        .filter((e) => e.category === cat)
-                        .length.toLocaleString()}
+                      {state.mode === "tailwind"
+                        ? modeFamilies.tailwind.filter((f) => f.category === cat).length
+                        : source.filter((e) => e.category === cat).length}
                     </b>
                   </button>
                 ))}
@@ -803,11 +803,10 @@ export default function App() {
                 aria-pressed={state.codeTheme === codeTheme}
                 onClick={() => save({ ...state, codeTheme })}
               >
-                {codeTheme === "midnight"
-                  ? "◐"
-                  : codeTheme === "candy"
-                    ? "✳"
-                    : "▤"}{" "}
+                <i
+                  aria-hidden="true"
+                  className={`fa-solid fa-${codeThemeIcons[codeTheme]}`}
+                />{" "}
                 {codeTheme}
               </button>
             ))}

@@ -2,6 +2,7 @@ import { Bookmark, ChevronRight } from "lucide-react";
 import type { Entry } from "../types";
 import type { EntryFamily } from "../families";
 import CopyButton from "./CopyButton";
+import { PaintChipStrip } from "./PaintChips";
 export default function FamilyRow({
   family,
   selected,
@@ -34,8 +35,14 @@ export default function FamilyRow({
       ? `${variant}:${entry.name}`
       : entry.name;
   const copyText = entry.mode === "selectors" ? entry.syntax : copyName;
+  const chips = family.kind === "chips";
+  const palettes = new Set(
+    family.members
+      .map((m) => m.name.match(/^-?[a-z][a-z-]*-([a-z]+)-\d{2,3}$/)?.[1])
+      .filter(Boolean),
+  ).size;
   return (
-    <div className={`result-row ${active ? "selected" : ""}`}>
+    <div className={`result-row ${active ? "selected" : ""} ${chips ? "chips-row" : ""}`}>
       <button
         className="result-select"
         aria-label={`Open ${name}`}
@@ -53,11 +60,23 @@ export default function FamilyRow({
           {entry.description}
         </span>
         <span className="result-category">
-          {entry.category}
+          {chips
+            ? `paint chips · ${palettes} palettes × ${Math.max(1, Math.round(family.members.length / Math.max(palettes, 1)))} shades`
+            : entry.category}
           {family.members.length > 1 &&
             ` · ${family.members.length.toLocaleString()} classes`}
         </span>
       </button>
+      {chips && (
+        <div className="result-strip-wrap">
+          <PaintChipStrip
+            family={family}
+            selected={entry}
+            prefix={variant}
+            copy={onCopy}
+          />
+        </div>
+      )}
       <CopyButton
         text={copyText}
         label={`Copy ${copyText}`}

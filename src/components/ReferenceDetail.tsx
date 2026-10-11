@@ -7,16 +7,114 @@ import {
   ExternalLink,
   Braces,
   SlidersHorizontal,
+  Plus,
+  X,
 } from "lucide-react";
 import type { Entry } from "../types";
 import type { AppState } from "../state";
 import { byId, meta } from "../reference";
-import { demoFor, initialValue, previewDocument } from "../demo";
+import {
+  demoFor,
+  initialValue,
+  previewDocument,
+  initialGradient,
+  isGradientEntry,
+  gradientClasses,
+  gradientCss,
+  GRADIENT_TYPES,
+  LINEAR_DIRECTIONS,
+  STOP_POSITIONS,
+  type GradientState,
+  type GradientStop,
+} from "../demo";
+import { PALETTE_ORDER, SHADE_ORDER, palettes } from "../grouping";
 import Code from "./CodeBlock";
 import CopyButton from "./CopyButton";
 import LivePreview from "./LivePreview";
+import { PaintChipWall } from "./PaintChips";
 import runtime from "../data/preview-runtime.css?raw";
 import type { EntryFamily } from "../families";
+
+const ANGLES = [0, 45, 90, 135, 180, 225, 270, 315].map((n) => `${n}deg`);
+
+function StopEditor({
+  stop,
+  label,
+  onChange,
+  onToggle,
+}: {
+  stop: GradientStop | null;
+  label: string;
+  onChange: (s: GradientStop) => void;
+  onToggle?: () => void;
+}) {
+  if (!stop)
+    return (
+      <div className="stop-editor empty">
+        <span className="stop-name">{label}</span>
+        <button className="stop-add" onClick={onToggle}>
+          <Plus size={12} /> add a middle color
+        </button>
+      </div>
+    );
+  return (
+    <div className="stop-editor">
+      <span className="stop-name">{label}</span>
+      <label className="stop-palette">
+        <span>palette</span>
+        <select
+          aria-label={`${label} palette`}
+          value={stop.palette}
+          onChange={(e) => onChange({ ...stop, palette: e.target.value })}
+        >
+          {PALETTE_ORDER.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="stop-shades" role="group" aria-label={`${label} shade`}>
+        {SHADE_ORDER.map((shade) => (
+          <button
+            key={shade}
+            className={stop.shade === shade ? "active" : ""}
+            style={{ background: palettes[stop.palette]?.[shade] }}
+            aria-label={`${label} ${stop.palette} ${shade}`}
+            aria-pressed={stop.shade === shade}
+            onClick={() => onChange({ ...stop, shade })}
+          >
+            {shade}
+          </button>
+        ))}
+        {onToggle && (
+          <button
+            className="stop-drop"
+            aria-label="Remove via stop"
+            onClick={onToggle}
+          >
+            <X size={12} />
+          </button>
+        )}
+      </div>
+      <label className="stop-position">
+        <span>stop</span>
+        <select
+          aria-label={`${label} stop position`}
+          value={stop.position}
+          onChange={(e) => onChange({ ...stop, position: e.target.value })}
+        >
+          {STOP_POSITIONS.map((p) => (
+            <option key={p} value={p}>
+              {p || "auto"}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+  );
+}
+
 export default function Detail({
   entry,
   state,
@@ -37,10 +135,17 @@ export default function Detail({
   const [tab, setTab] = useState<"reference" | "try">("reference");
   const [value, setValue] = useState("");
   const [direction, setDirection] = useState("row");
+  const [gradient, setGradient] = useState<GradientState>(() =>
+    initialGradient(entry),
+  );
   const detailRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setValue(initialValue(entry));
   }, [entry.id]);
+  const gradientEntry = entry.mode === "tailwind" && isGradientEntry(entry);
+  useEffect(() => {
+    if (gradientEntry) setGradient(initialGradient(entry));
+  }, [entry.id, gradientEntry]);
   const referenceGroup = family?.key || entry.id;
   useEffect(() => {
     setTab("reference");
@@ -52,8 +157,15 @@ export default function Detail({
       ? byId.get(`css-${entry.cssProperty}`)
       : undefined;
   const support = entry.support || cssEntry?.support;
-  const demo = demoFor(entry, value, direction);
+  const demo = demoFor(
+    entry,
+    value,
+    direction,
+    gradientEntry ? gradient : undefined,
+  );
   const doc = previewDocument(demo.html, demo.css, runtime);
+  const patchGradient = (patch: Partial<GradientState>) =>
+    setGradient((g) => ({ ...g, ...patch }));
   const related = [...new Set(entry.related)]
     .map((id) => byId.get(id))
     .filter(
@@ -110,47 +222,67 @@ export default function Detail({
           <Bookmark size={21} fill={bookmarked ? "currentColor" : "none"} />
         </button>
       </div>
-      {family && family.members.length > 1 && (
-        <div className="family-picker">
+      {family && family.kind === "chips" ? (
+        <div className="family-picker chip-picker">
           <label>
             {family.name}{" "}
-            <span>· {family.members.length.toLocaleString()} choices</span>
-            <select
-              aria-label="Choose a class in this family"
-              value={entry.id}
-              onChange={(e) => {
-                const chosen = byId.get(e.target.value);
-                if (chosen) select(chosen);
-              }}
-            >
-              {[...family.members]
-                .sort((a, b) =>
-                  a.name.localeCompare(b.name, undefined, { numeric: true }),
-                )
-                .map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.name}
-                  </option>
-                ))}
-            </select>
+            <span>
+              · {family.members.length.toLocaleString()} shades — click one to
+              copy it
+            </span>
           </label>
-          <div className="family-values">
-            {family.members
-              .filter((e) => /-\d+(?:\.\d+)?$/.test(e.name))
-              .slice(0, 12)
-              .map((e) => (
-                <button
-                  key={e.id}
-                  className={e.id === entry.id ? "active" : ""}
-                  aria-label={`Choose ${e.name}`}
-                  aria-pressed={e.id === entry.id}
-                  onClick={() => select(e)}
-                >
-                  {e.name.split("-").at(-1)}
-                </button>
-              ))}
-          </div>
+          <PaintChipWall
+            family={family}
+            selected={entry}
+            prefix={prefix}
+            onSelect={select}
+            copy={copy}
+          />
         </div>
+      ) : (
+        family &&
+        family.members.length > 1 && (
+          <div className="family-picker">
+            <label>
+              {family.name}{" "}
+              <span>· {family.members.length.toLocaleString()} choices</span>
+              <select
+                aria-label="Choose a class in this family"
+                value={entry.id}
+                onChange={(e) => {
+                  const chosen = byId.get(e.target.value);
+                  if (chosen) select(chosen);
+                }}
+              >
+                {[...family.members]
+                  .sort((a, b) =>
+                    a.name.localeCompare(b.name, undefined, { numeric: true }),
+                  )
+                  .map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <div className="family-values">
+              {family.members
+                .filter((e) => /-\d+(?:\.\d+)?$/.test(e.name))
+                .slice(0, 12)
+                .map((e) => (
+                  <button
+                    key={e.id}
+                    className={e.id === entry.id ? "active" : ""}
+                    aria-label={`Choose ${e.name}`}
+                    aria-pressed={e.id === entry.id}
+                    onClick={() => select(e)}
+                  >
+                    {e.name.split("-").at(-1)}
+                  </button>
+                ))}
+            </div>
+          </div>
+        )
       )}
       <p className="entry-description">{entry.description}</p>
       <div className="detail-tabs">
@@ -187,7 +319,13 @@ export default function Detail({
                 ? "Underline supplied so decoration color, style, and thickness are visible."
                 : demo.kind === "alignment"
                   ? "Three items. One container. A little room to move."
-                  : "Illustrative sandbox · switch to Play with it to inspect the example."}
+                  : demo.kind === "color"
+                    ? "Painted with the selected shade."
+                    : demo.kind === "gradient"
+                      ? "Mixed in the lab below — switch to Play with it to remix."
+                      : demo.kind === "background"
+                        ? "The sticker image makes position, size, and repeat visible."
+                        : "Illustrative sandbox · switch to Play with it to inspect the example."}
               <button onClick={() => setTab("try")}>
                 Tinker <SlidersHorizontal size={13} />
               </button>
@@ -302,6 +440,99 @@ export default function Detail({
               </label>
             )}
           </div>
+          {gradientEntry && (
+            <div className="gradient-lab">
+              <div className="section-label">
+                MIX A GRADIENT{" "}
+                <span className="handwritten">real colors, real stops ↴</span>
+              </div>
+              <div className="lab-row">
+                <label>
+                  Kind
+                  <select
+                    aria-label="Gradient kind"
+                    value={gradient.type}
+                    onChange={(e) =>
+                      patchGradient({
+                        type: e.target.value as GradientState["type"],
+                      })
+                    }
+                  >
+                    {GRADIENT_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {gradient.type !== "radial" && (
+                  <label>
+                    {gradient.type === "conic" ? "From angle" : "Direction"}
+                    <select
+                      aria-label="Gradient direction"
+                      value={gradient.direction}
+                      onChange={(e) =>
+                        patchGradient({ direction: e.target.value })
+                      }
+                    >
+                      {gradient.type === "linear" &&
+                        LINEAR_DIRECTIONS.map(([css]) => (
+                          <option key={css} value={css}>
+                            {css}
+                          </option>
+                        ))}
+                      {ANGLES.map((a) => (
+                        <option key={a} value={a}>
+                          {a}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
+              <StopEditor
+                label="from"
+                stop={gradient.from}
+                onChange={(from) => patchGradient({ from })}
+              />
+              <StopEditor
+                label="via"
+                stop={gradient.via}
+                onChange={(via) => patchGradient({ via })}
+                onToggle={() =>
+                  patchGradient({
+                    via: gradient.via
+                      ? null
+                      : { ...gradient.from, position: "" },
+                  })
+                }
+              />
+              <StopEditor
+                label="to"
+                stop={gradient.to}
+                onChange={(to) => patchGradient({ to })}
+              />
+              <div
+                className="gradient-swatch"
+                style={{ background: gradientCss(gradient) }}
+                aria-hidden="true"
+              />
+              <div className="gradient-classes">
+                <code>{gradientClasses(gradient)}</code>
+                <CopyButton
+                  text={gradientClasses(gradient)}
+                  label="Copy gradient classes"
+                  caption="Copy classes"
+                  onCopy={copy}
+                />
+              </div>
+              <p className="small-muted">
+                The classes above are the real Tailwind recipe for the gradient
+                you mixed. <code>via</code> is optional; stop positions come
+                from <code>from-10%</code>-style classes.
+              </p>
+            </div>
+          )}
           <LivePreview
             document={doc}
             title={`Interactive preview of ${entry.name}`}
