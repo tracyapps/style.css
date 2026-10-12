@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Check } from "lucide-react";
+import { Check, ChevronRight } from "lucide-react";
 import type { Entry } from "../types";
 import type { EntryFamily } from "../families";
-import { chipsColor, compareChips } from "../grouping";
+import {
+  chipsColor,
+  compareChips,
+  palettes,
+  PALETTE_ORDER,
+  SHADE_ORDER,
+} from "../grouping";
 
 const SOLO_NAMES = new Set(["black", "white", "transparent", "current", "inherit"]);
 
@@ -36,14 +42,15 @@ export function PaintChip({
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
   const color = chipsColor(entry);
-  const text = prefix && !entry.name.includes(":") ? `${prefix}:${entry.name}` : entry.name;
+  const text =
+    prefix && !entry.name.includes(":") ? `${prefix}:${entry.name}` : entry.name;
   const special =
     color === "transparent" || color === "inherit" || color === "currentColor";
   return (
     <button
       type="button"
       className={`paint-chip ${compact ? "compact" : ""} ${selected ? "selected" : ""} ${special ? entry.name.split("-").at(-1) : ""}`}
-      style={special ? undefined : { "--chip": color } as React.CSSProperties}
+      style={special ? undefined : ({ "--chip": color } as React.CSSProperties)}
       aria-label={`Copy ${text}`}
       aria-pressed={selected}
       title={`${text} · ${color}`}
@@ -73,42 +80,104 @@ export function PaintChip({
 
 function paletteOf(entry: Entry) {
   return (
-    entry.name.match(/^-?[a-z][a-z-]*-([a-z]+)-\d{2,3}$/)?.[1] ?? "\u0000solos"
+    entry.name.match(/^-?[a-z][a-z-]*-([a-z]+)-\d{2,3}$/)?.[1] ?? "solos"
   );
 }
 
-/** The full paint aisle: every palette in the family, one row per palette. */
+function stripPreview(palette: string) {
+  if (palette === "solos")
+    return "repeating-linear-gradient(45deg, #cfcaba 0 5px, #f7f4e7 5px 10px)";
+  const shades = palettes[palette];
+  if (!shades) return "transparent";
+  return `linear-gradient(90deg, ${SHADE_ORDER.map((s) => shades[s]).join(", ")})`;
+}
+
+/**
+ * The paint aisle as collapsible rows: every palette spans the full width,
+ * light to dark, in Tailwind's theme order (red, orange, amber, …).
+ */
 export function PaintChipWall({
   family,
   selected,
   prefix,
   onSelect,
   copy,
+  collapsed,
+  onToggle,
 }: {
   family: EntryFamily;
   selected: Entry;
   prefix: string;
   onSelect: (e: Entry) => void;
   copy: (text: string) => Promise<void>;
+  /** Controlled accordion state (persisted); omit for local state. */
+  collapsed?: string[];
+  onToggle?: (palette: string) => void;
 }) {
+  const activePalette = paletteOf(selected);
   const rows = new Map<string, Entry[]>();
   for (const member of [...family.members].sort(compareChips)) {
     const palette = paletteOf(member);
     if (!rows.has(palette)) rows.set(palette, []);
     rows.get(palette)!.push(member);
   }
-  const activePalette = paletteOf(selected);
-  const ordered = [...rows.entries()].sort(([a], [b]) =>
-    a === activePalette ? -1 : b === activePalette ? 1 : a.localeCompare(b),
-  );
+  // Uncontrolled walls (the reference panel) start with only the active
+  // palette open; controlled ones (the Colors tab) read the desk preference.
+  const [local, setLocal] = useState<string[] | null>(null);
+  const isCollapsed = (palette: string) => {
+    if (collapsed) return collapsed.includes(palette);
+    if (local === null) return palette !== activePalette;
+    return local.includes(palette);
+  };
+  const toggle = (palette: string) => {
+    if (onToggle) {
+      onToggle(palette);
+      return;
+    }
+    const current =
+      local ?? [...rows.keys()].filter((p) => p !== activePalette);
+    setLocal(
+      current.includes(palette)
+        ? current.filter((x) => x !== palette)
+        : [...current, palette],
+    );
+  };
+  const ordered = [...rows.entries()].sort(([a], [b]) => {
+    if (a === "solos") return 1;
+    if (b === "solos") return -1;
+    return PALETTE_ORDER.indexOf(a) - PALETTE_ORDER.indexOf(b);
+  });
+  const open = ordered.filter(([palette]) => !isCollapsed(palette));
+  const shut = ordered.filter(([palette]) => isCollapsed(palette));
   return (
-    <div className="paint-wall" role="group" aria-label={`${family.name} paint chips`}>
-      {ordered.map(([palette, members]) => (
-        <div key={palette} className={`paint-row ${palette === activePalette ? "active" : ""}`}>
-          <span className="paint-row-label">
-            {palette === "\u0000solos" ? "solos" : palette}
-          </span>
-          <div className="paint-row-chips">
+    <div
+      className="paint-wall"
+      role="group"
+      aria-label={`${family.name} paint chips`}
+    >
+      {open.map(([palette, members]) => (
+        <div
+          key={palette}
+          className={`paint-acc open ${palette === activePalette ? "active" : ""}`}
+        >
+          <button
+            type="button"
+            className="paint-acc-head"
+            aria-expanded={true}
+            aria-label={`Fold up ${palette === "solos" ? "special values" : palette}`}
+            onClick={() => toggle(palette)}
+          >
+            <ChevronRight size={12} className="acc-chevron" />
+            <span className="paint-acc-name">
+              {palette === "solos" ? "solos" : palette}
+            </span>
+            <span
+              className="paint-acc-strip"
+              style={{ background: stripPreview(palette) }}
+            />
+            <span className="paint-acc-count">{members.length}</span>
+          </button>
+          <div className="paint-acc-body">
             {members.map((member) => (
               <PaintChip
                 key={member.id}
@@ -122,6 +191,28 @@ export function PaintChipWall({
           </div>
         </div>
       ))}
+      {shut.length > 0 && (
+        <div className="paint-tray" role="group" aria-label="Folded palettes">
+          <span className="paint-tray-label">folded</span>
+          {shut.map(([palette]) => (
+            <button
+              key={palette}
+              type="button"
+              className={`paint-pill ${palette === activePalette ? "active" : ""}`}
+              aria-label={`Open ${palette === "solos" ? "special values" : palette}`}
+              onClick={() => toggle(palette)}
+            >
+              <span
+                className="pill-strip"
+                style={{ background: stripPreview(palette) }}
+              />
+              <span className="pill-name">
+                {palette === "solos" ? "solos" : palette}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -138,11 +229,13 @@ export function PaintChipStrip({
   prefix: string;
   copy: (text: string) => Promise<void>;
 }) {
-  const palette = paletteOf(selected.id === family.representative.id ? selected : family.representative);
+  const palette = paletteOf(
+    selected.id === family.representative.id ? selected : family.representative,
+  );
   const members = family.members
-    .filter((m) => paletteOf(m) === palette && !paletteOf(m).startsWith("\u0000"))
+    .filter((m) => paletteOf(m) === palette && paletteOf(m) !== "solos")
     .sort(compareChips);
-  const solos = family.members.filter((m) => paletteOf(m).startsWith("\u0000"));
+  const solos = family.members.filter((m) => paletteOf(m) === "solos");
   return (
     <div className="paint-strip" aria-hidden="true">
       {members.slice(0, 11).map((member) => (
@@ -156,7 +249,13 @@ export function PaintChipStrip({
         />
       ))}
       {solos.slice(0, 2).map((member) => (
-        <PaintChip key={member.id} entry={member} prefix={prefix} compact copy={copy} />
+        <PaintChip
+          key={member.id}
+          entry={member}
+          prefix={prefix}
+          compact
+          copy={copy}
+        />
       ))}
     </div>
   );

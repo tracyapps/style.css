@@ -14,6 +14,7 @@ import {
   Braces,
   Layers,
   Hash,
+  Palette,
   ArrowLeft,
 } from "lucide-react";
 
@@ -21,8 +22,16 @@ import { entries, byId, meta } from "./reference";
 import Code from "./components/CodeBlock";
 import Detail from "./components/ReferenceDetail";
 import FamilyRow from "./components/FamilyRow";
+import ColorPanel from "./components/ColorPanel";
+import ResizeHandle from "./components/ResizeHandle";
 import { familyKey, groupEntries, type EntryFamily } from "./families";
-import { CATEGORY_ORDER } from "./grouping";
+import {
+  CATEGORY_ORDER,
+  COLOR_CATEGORY_ORDER,
+  colorStemCategory,
+  familyMeta,
+  chipPalette,
+} from "./grouping";
 import { CategoryIcon, codeThemeIcons } from "./icons";
 import {
   breakpoints,
@@ -41,17 +50,38 @@ import {
 } from "./state";
 import { findEntries } from "./search";
 
-const modes: Mode[] = ["tailwind", "css", "selectors"];
-const labels = { tailwind: "Tailwind", css: "CSS", selectors: "Selectors" };
+const modes: Mode[] = ["colors", "tailwind", "css", "selectors"];
+const labels = {
+  colors: "Colors",
+  tailwind: "Tailwind",
+  css: "CSS",
+  selectors: "Selectors",
+};
 const modeEntries = Object.fromEntries(
   modes.map((m) => [m, entries.filter((e) => e.mode === m)]),
 ) as Record<Mode, Entry[]>;
+// The Colors desk shows only paint-chip utilities, re-bucketed by what they
+// paint (background, text, border, …) instead of the full utility taxonomy.
+const colorEntries = modeEntries.tailwind
+  .filter((e) => familyMeta(e).kind === "chips")
+  .map((e) => ({ ...e, category: colorStemCategory(familyMeta(e).stem) }));
+modeEntries.colors = colorEntries;
+const colorById = new Map(colorEntries.map((e) => [e.id, e]));
 const modeFamilies = Object.fromEntries(
   modes.map((m) => [m, groupEntries(modeEntries[m])]),
 ) as Record<Mode, EntryFamily[]>;
+// Family categories come from the full taxonomy; re-bucket the color
+// families by what they paint so the Colors sidebar counts line up.
+modeFamilies.colors = modeFamilies.colors.map((f) => ({
+  ...f,
+  category: f.key.startsWith("chips:")
+    ? colorStemCategory(f.key.slice("chips:".length))
+    : f.category,
+}));
 const tailwindFamilies = new Map(
   modeFamilies.tailwind.map((f) => [f.key, f]),
 );
+const colorFamilies = new Map(modeFamilies.colors.map((f) => [f.key, f]));
 export default function App() {
   const [initial] = useState(() => {
     try {
@@ -74,6 +104,7 @@ export default function App() {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const deskRef = useRef<HTMLDivElement>(null);
   const view = state.views[state.mode];
+  const colorMode = state.mode === "colors";
   const responsiveSearch =
     state.mode === "tailwind"
       ? parseResponsiveSearch(view.query)
@@ -84,9 +115,24 @@ export default function App() {
       : "";
   const searchView = { ...view, query: responsiveSearch.query };
   const source = modeEntries[state.mode];
+  const [desktop, setDesktop] = useState(
+    () =>
+      typeof matchMedia === "function" &&
+      matchMedia("(min-width: 761px)").matches,
+  );
+  useEffect(() => {
+    const m = matchMedia("(min-width: 761px)");
+    const update = () => setDesktop(m.matches);
+    m.addEventListener("change", update);
+    return () => m.removeEventListener("change", update);
+  }, []);
   const categories = useMemo(() => {
     const present = [...new Set(source.map((e) => e.category))];
     const rank = (c: string) => {
+      if (colorMode) {
+        const i = (COLOR_CATEGORY_ORDER as readonly string[]).indexOf(c);
+        return i < 0 ? 998 : i;
+      }
       if (state.mode !== "tailwind") return 999;
       const i = (CATEGORY_ORDER as readonly string[]).indexOf(c);
       return i < 0 ? 998 : i;
@@ -94,7 +140,7 @@ export default function App() {
     return present.sort(
       (a, b) => rank(a) - rank(b) || a.localeCompare(b),
     );
-  }, [source, state.mode]);
+  }, [source, state.mode, colorMode]);
   // Stored sidebar buckets can fall out of date after a regroup; treat
   // unknown categories as "All" instead of showing an empty shelf.
   const activeCategory = categories.includes(view.category)
@@ -127,9 +173,12 @@ export default function App() {
   const baseEntry = nativePrefix
     ? byId.get(`tw-${rawEntry.name.slice(nativePrefix.length + 1)}`) || rawEntry
     : rawEntry;
-  const entry = responsiveEntry(baseEntry, variant || nativePrefix);
-  const family =
-    state.mode === "tailwind"
+  const entry = colorMode
+    ? (colorById.get(baseEntry.id) ?? baseEntry)
+    : responsiveEntry(baseEntry, variant || nativePrefix);
+  const family = colorMode
+    ? colorFamilies.get(familyKey(baseEntry))
+    : state.mode === "tailwind"
       ? tailwindFamilies.get(familyKey(baseEntry))
       : undefined;
   const dockDesk = () => {
@@ -304,24 +353,177 @@ export default function App() {
   };
   const clearFilters = () =>
     patchView({ query: "", category: "All", scope: "all" });
+  // Colors desk: picking a chip stays in the tab, and switching families
+  // carries the last shade over (stay on red-500 as you move bg → text).
+  const commitColors = (e: Entry) => {
+    dockDesk();
+    const pick = e.name.match(/-([a-z]+)-(\d{2,3})$/);
+    setState((s) => ({
+      ...s,
+      views: {
+        ...s.views,
+        colors: { ...s.views.colors, selected: e.id, scroll: s.views.colors.scroll },
+      },
+      recent: [e.id, ...s.recent.filter((id) => id !== e.id)].slice(0, 24),
+      lastColor: pick ? { palette: pick[1], shade: pick[2] } : s.lastColor,
+    }));
+    setMobileDetail(true);
+  };
+  const selectColorFamily = (e: Entry) => {
+    const fam = colorFamilies.get(familyKey(e));
+    const last = state.lastColor;
+    const carried =
+      fam && last && fam.kind === "chips"
+        ? fam.members.find(
+            (m) =>
+              m.name ===
+              `${fam.key.slice("chips:".length)}-${last.palette}-${last.shade}`,
+          )
+        : undefined;
+    commitColors(carried ?? e);
+  };
+  const selectInMode = colorMode ? commitColors : select;
+  const setSize = (patch: Partial<AppState["sizes"]>) =>
+    setState((s) => ({ ...s, sizes: { ...s.sizes, ...patch } }));
+  const togglePalette = (palette: string) =>
+    setState((s) => ({
+      ...s,
+      colorCollapsed: s.colorCollapsed.includes(palette)
+        ? s.colorCollapsed.filter((x) => x !== palette)
+        : [...s.colorCollapsed, palette],
+    }));
+  const collapseAllPalettes = () =>
+    setState((s) => ({
+      ...s,
+      colorCollapsed: [
+        ...new Set((family?.members ?? colorEntries).map(chipPalette)),
+      ],
+    }));
+  const expandAllPalettes = () =>
+    setState((s) => ({ ...s, colorCollapsed: [] }));
+  const inCurrentMode = (id: string) =>
+    colorMode ? colorById.has(id) : byId.get(id)?.mode === state.mode;
   const recent = state.recent
-    .map((id) => byId.get(id))
-    .filter((e): e is Entry => !!e && e.mode === state.mode)
+    .map((id) => (colorMode ? colorById.get(id) : byId.get(id)))
+    .filter((e): e is Entry => !!e && (colorMode || e.mode === state.mode))
     .slice(0, 4);
   const common = (
-    state.mode === "tailwind"
-      ? ["tw-flex", "tw-grid", "tw-justify-center", "tw-gap-4"]
-      : state.mode === "css"
-        ? [
-            "css-justify-content",
-            "css-align-items",
-            "css-display",
-            "css-grid-template-columns",
-          ]
-        : ["sel-has", "sel-not", "sel-nth-child", "sel-where"]
+    colorMode
+      ? ["tw-bg-red-500", "tw-text-red-500", "tw-border-red-500", "tw-from-red-500"]
+      : state.mode === "tailwind"
+        ? ["tw-flex", "tw-grid", "tw-justify-center", "tw-gap-4"]
+        : state.mode === "css"
+          ? [
+              "css-justify-content",
+              "css-align-items",
+              "css-display",
+              "css-grid-template-columns",
+            ]
+          : ["sel-has", "sel-not", "sel-nth-child", "sel-where"]
   )
-    .map((id) => byId.get(id))
+    .map((id) => (colorMode ? colorById.get(id) : byId.get(id)))
     .filter((e): e is Entry => !!e);
+  const resultsPane = (
+    <section className="results-pane" aria-label="Search results">
+      <div className="results-header">
+        <span>
+          {view.scope === "saved"
+            ? "YOUR BOOKMARKS"
+            : view.scope === "recent"
+              ? "RECENTLY OPENED"
+              : view.category === "All"
+                ? "THE GOOD STUFF"
+                : view.category.toUpperCase()}
+        </span>
+        <span aria-live="polite">
+          {state.mode === "css" || state.mode === "selectors"
+            ? `${matches.length.toLocaleString()} found`
+            : `${groups.length.toLocaleString()} ${groups.length === 1 ? "group" : "groups"} · ${matches.length.toLocaleString()} ${matches.length === 1 ? "class" : "classes"}`}
+        </span>
+      </div>
+      <div className="results-list" ref={listRef} onScroll={rememberScroll}>
+        {matches.length === 0 ? (
+          <div className="empty-state">
+            <Search size={30} />
+            <h3>No scraps here.</h3>
+            <p>
+              {view.scope === "saved"
+                ? "Bookmark a reference to keep it here."
+                : "Try a different word or loosen the filters."}
+            </p>
+            <button onClick={clearFilters}>Show everything</button>
+          </div>
+        ) : (
+          groups.slice(0, pageSize).map((group) => (
+            <FamilyRow
+              key={group.key}
+              family={group}
+              selected={entry}
+              variant={variant}
+              hideChips={colorMode}
+              bookmarks={state.bookmarks}
+              onSelect={colorMode ? selectColorFamily : select}
+              onCopy={copy}
+              onBookmark={(e) =>
+                save({
+                  ...state,
+                  bookmarks: state.bookmarks.includes(e.id)
+                    ? state.bookmarks.filter((id) => id !== e.id)
+                    : [...state.bookmarks, e.id],
+                })
+              }
+            />
+          ))
+        )}
+        {groups.length > pageSize && (
+          <button
+            className="load-more"
+            onClick={() => setPageSize((n) => n + 100)}
+          >
+            Dig up 100 more{" "}
+            <span>
+              ({(groups.length - pageSize).toLocaleString()} left)
+            </span>
+          </button>
+        )}
+      </div>
+      <div className="results-bottom">
+        {state.mode === "css" || state.mode === "selectors"
+          ? "MDN REFERENCE"
+          : `TAILWIND ${meta.tailwindVersion}`}
+        <span>← pick a scrap</span>
+      </div>
+    </section>
+  );
+  const detailWrap = (
+    <div className="detail-wrap">
+      <button className="mobile-back" onClick={() => setMobileDetail(false)}>
+        <ArrowLeft size={16} /> Back to results
+      </button>
+      {entry && (
+        <Detail
+          entry={entry}
+          family={family}
+          prefix={variant || nativePrefix}
+          hideWall={colorMode}
+          state={state}
+          save={save}
+          select={select}
+          copy={copy}
+        />
+      )}
+    </div>
+  );
+  const resultsHandle = desktop && (
+    <ResizeHandle
+      axis="x"
+      size={state.sizes.results}
+      min={230}
+      max={640}
+      onSize={(n) => setSize({ results: n })}
+      label="Resize results"
+    />
+  );
   return (
     <>
       <div className="app-shell">
@@ -371,11 +573,7 @@ export default function App() {
               >
                 <Bookmark size={15} /> Saved{" "}
                 <b>
-                  {
-                    state.bookmarks.filter(
-                      (id) => byId.get(id)?.mode === state.mode,
-                    ).length
-                  }
+                  {state.bookmarks.filter((id) => inCurrentMode(id)).length}
                 </b>
               </button>
               <button
@@ -401,7 +599,9 @@ export default function App() {
                         setMobileDetail(false);
                       }}
                     >
-                      {m === "tailwind" ? (
+                      {m === "colors" ? (
+                        <Palette size={16} />
+                      ) : m === "tailwind" ? (
                         <Layers size={16} />
                       ) : m === "css" ? (
                         <Braces size={16} />
@@ -426,15 +626,17 @@ export default function App() {
                     value={view.query}
                     onChange={(e) => patchView({ query: e.target.value })}
                     placeholder={
-                      state.mode === "tailwind"
-                        ? "Search classes, properties, or “center”…"
-                        : state.mode === "css"
-                          ? "Search properties, values, or “flex”…"
-                          : "Search selectors, patterns, or “parent”…"
+                      colorMode
+                        ? "Search color classes or “sky”…"
+                        : state.mode === "tailwind"
+                          ? "Search classes, properties, or “center”…"
+                          : state.mode === "css"
+                            ? "Search properties, values, or “flex”…"
+                            : "Search selectors, patterns, or “parent”…"
                     }
                     aria-label={`Search ${labels[state.mode]}`}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && matches[0]) select(matches[0]);
+                      if (e.key === "Enter" && matches[0]) selectInMode(matches[0]);
                     }}
                   />
                   {view.query ? (
@@ -512,7 +714,16 @@ export default function App() {
                 </div>
               )}
             </div>
-            <div className={`workspace ${mobileDetail ? "show-detail" : ""}`}>
+            <div
+              className={`workspace ${colorMode ? "colors-mode" : ""} ${mobileDetail ? "show-detail" : ""}`}
+              style={
+                desktop
+                  ? {
+                      gridTemplateColumns: `${state.sizes.sidebar}px 7px ${colorMode ? "" : `${state.sizes.results}px 7px `}minmax(0, 1fr)`,
+                    }
+                  : undefined
+              }
+            >
               <aside className="sidebar">
                 <div className="section-label">RUMMAGE AROUND</div>
                 <button
@@ -538,7 +749,9 @@ export default function App() {
                     <b>
                       {state.mode === "tailwind"
                         ? modeFamilies.tailwind.filter((f) => f.category === cat).length
-                        : source.filter((e) => e.category === cat).length}
+                        : colorMode
+                          ? modeFamilies.colors.filter((f) => f.category === cat).length
+                          : source.filter((e) => e.category === cat).length}
                     </b>
                   </button>
                 ))}
@@ -550,9 +763,8 @@ export default function App() {
                   <Bookmark size={15} /> Bookmarks{" "}
                   <b>
                     {
-                      state.bookmarks.filter(
-                        (id) => byId.get(id)?.mode === state.mode,
-                      ).length
+                      state.bookmarks.filter((id) => inCurrentMode(id))
+                        .length
                     }
                   </b>
                 </button>
@@ -568,7 +780,7 @@ export default function App() {
                   <span className="tape" />
                   <span className="handwritten">the usual suspects</span>
                   {common.map((e) => (
-                    <button key={e.id} onClick={() => select(e)}>
+                    <button key={e.id} onClick={() => selectInMode(e)}>
                       {e.name}
                       <ArrowUpRight size={12} />
                     </button>
@@ -578,7 +790,7 @@ export default function App() {
                   <div className="recent-section">
                     <div className="section-label">BACK TO IT</div>
                     {recent.map((e) => (
-                      <button key={e.id} onClick={() => select(e)}>
+                      <button key={e.id} onClick={() => selectInMode(e)}>
                         <Clock3 size={12} />
                         {e.name}
                       </button>
@@ -615,98 +827,54 @@ export default function App() {
                   smells like paper. ↟
                 </div>
               </aside>
-              <section className="results-pane" aria-label="Search results">
-                <div className="results-header">
-                  <span>
-                    {view.scope === "saved"
-                      ? "YOUR BOOKMARKS"
-                      : view.scope === "recent"
-                        ? "RECENTLY OPENED"
-                        : view.category === "All"
-                          ? "THE GOOD STUFF"
-                          : view.category.toUpperCase()}
-                  </span>
-                  <span aria-live="polite">
-                    {state.mode === "tailwind"
-                      ? `${groups.length.toLocaleString()} ${groups.length === 1 ? "group" : "groups"} · ${matches.length.toLocaleString()} ${matches.length === 1 ? "class" : "classes"}`
-                      : `${matches.length.toLocaleString()} found`}
-                  </span>
-                </div>
-                <div
-                  className="results-list"
-                  ref={listRef}
-                  onScroll={rememberScroll}
-                >
-                  {matches.length === 0 ? (
-                    <div className="empty-state">
-                      <Search size={30} />
-                      <h3>No scraps here.</h3>
-                      <p>
-                        {view.scope === "saved"
-                          ? "Bookmark a reference to keep it here."
-                          : "Try a different word or loosen the filters."}
-                      </p>
-                      <button onClick={clearFilters}>Show everything</button>
-                    </div>
-                  ) : (
-                    groups.slice(0, pageSize).map((group) => (
-                      <FamilyRow
-                        key={group.key}
-                        family={group}
-                        selected={entry}
-                        variant={variant}
-                        bookmarks={state.bookmarks}
-                        onSelect={select}
-                        onCopy={copy}
-                        onBookmark={(e) =>
-                          save({
-                            ...state,
-                            bookmarks: state.bookmarks.includes(e.id)
-                              ? state.bookmarks.filter((id) => id !== e.id)
-                              : [...state.bookmarks, e.id],
-                          })
-                        }
-                      />
-                    ))
+              {desktop && (
+                <ResizeHandle
+                  axis="x"
+                  size={state.sizes.sidebar}
+                  min={140}
+                  max={340}
+                  onSize={(n) => setSize({ sidebar: n })}
+                  label="Resize categories"
+                />
+              )}
+              {colorMode ? (
+                <div className="desk-columns">
+                  {family?.kind === "chips" && (
+                    <ColorPanel
+                      family={family}
+                      selected={entry}
+                      onSelect={commitColors}
+                      copy={copy}
+                      collapsed={state.colorCollapsed}
+                      onToggle={togglePalette}
+                      onCollapseAll={collapseAllPalettes}
+                      onExpandAll={expandAllPalettes}
+                      wallMax={state.sizes.colorWall}
+                      onWallMax={(n) => setSize({ colorWall: n })}
+                    />
                   )}
-                  {groups.length > pageSize && (
-                    <button
-                      className="load-more"
-                      onClick={() => setPageSize((n) => n + 100)}
-                    >
-                      Dig up 100 more{" "}
-                      <span>
-                        ({(groups.length - pageSize).toLocaleString()} left)
-                      </span>
-                    </button>
-                  )}
+                  <div
+                    className="desk-lower"
+                    style={
+                      desktop
+                        ? {
+                            gridTemplateColumns: `${state.sizes.results}px 7px minmax(0, 1fr)`,
+                          }
+                        : undefined
+                    }
+                  >
+                    {resultsPane}
+                    {resultsHandle}
+                    {detailWrap}
+                  </div>
                 </div>
-                <div className="results-bottom">
-                  {state.mode === "tailwind"
-                    ? `TAILWIND ${meta.tailwindVersion}`
-                    : "MDN REFERENCE"}
-                  <span>← pick a scrap</span>
-                </div>
-              </section>
-              <div className="detail-wrap">
-                <button
-                  className="mobile-back"
-                  onClick={() => setMobileDetail(false)}
-                >
-                  <ArrowLeft size={16} /> Back to results
-                </button>
-                {entry && (
-                  <Detail
-                    entry={entry}
-                    family={family}
-                    prefix={variant || nativePrefix}
-                    state={state}
-                    save={save}
-                    select={select}
-                    copy={copy}
-                  />
-                )}
-              </div>
+              ) : (
+                <>
+                  {resultsPane}
+                  {resultsHandle}
+                  {detailWrap}
+                </>
+              )}
             </div>
           </main>
           <footer className="app-footer">

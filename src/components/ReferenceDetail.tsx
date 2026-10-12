@@ -123,10 +123,13 @@ export default function Detail({
   copy,
   family,
   prefix,
+  hideWall = false,
 }: {
   entry: Entry;
   family?: EntryFamily;
   prefix: string;
+  /** The Colors tab shows its chip wall on the always-on shelf above. */
+  hideWall?: boolean;
   state: AppState;
   save: (s: AppState) => void;
   select: (e: Entry) => void;
@@ -222,7 +225,7 @@ export default function Detail({
           <Bookmark size={21} fill={bookmarked ? "currentColor" : "none"} />
         </button>
       </div>
-      {family && family.kind === "chips" ? (
+      {family && family.kind === "chips" && !hideWall ? (
         <div className="family-picker chip-picker">
           <label>
             {family.name}{" "}

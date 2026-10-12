@@ -6,6 +6,8 @@ import {
   displayName,
   categoryOf,
   chipsColor,
+  colorStemCategory,
+  COLOR_CATEGORY_ORDER,
   CATEGORY_ORDER,
 } from "../src/grouping.ts";
 const entries = JSON.parse(
@@ -65,4 +67,24 @@ test("display names disambiguate shared stems", () => {
   assert.equal(show("border-dashed"), "border-{style}");
   assert.equal(show("bg-top-left"), "bg-{position}");
   assert.equal(show("from-50%"), "from-{%}");
+});
+
+test("the Colors tab buckets stems by what they paint, in shelf order", () => {
+  assert.equal(colorStemCategory("bg"), "Backgrounds");
+  assert.equal(colorStemCategory("from"), "Gradients");
+  assert.equal(colorStemCategory("via"), "Gradients");
+  assert.equal(colorStemCategory("text"), "Text");
+  assert.equal(colorStemCategory("placeholder"), "Text");
+  assert.equal(colorStemCategory("border-b"), "Borders");
+  assert.equal(colorStemCategory("ring-offset"), "Borders");
+  assert.equal(colorStemCategory("shadow"), "Shadows");
+  assert.equal(colorStemCategory("drop-shadow"), "Shadows");
+  assert.equal(colorStemCategory("mask-l-from"), "Masks");
+  assert.equal(colorStemCategory("fill"), "Accents & SVG");
+  assert.equal(colorStemCategory("scrollbar-thumb"), "Accents & SVG");
+  const shelf = [...COLOR_CATEGORY_ORDER];
+  assert.deepEqual(
+    ["Backgrounds", "Gradients", "Borders"].map((c) => shelf.indexOf(c)).sort(),
+    [0, 1, 3],
+  );
 });

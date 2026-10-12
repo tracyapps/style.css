@@ -94,6 +94,29 @@ test("corrupt stored state is preserved and independent section state round trip
   );
 });
 
+test("a desk saved before the Colors tab keeps its bookmarks and gains the new section", () => {
+  const s = defaults();
+  const saved = {
+    ...s,
+    views: { tailwind: s.views.tailwind, css: s.views.css, selectors: s.views.selectors },
+    sizes: undefined,
+    colorCollapsed: undefined,
+    lastColor: undefined,
+  };
+  const restored = readState({ getItem: () => JSON.stringify(saved) });
+  assert.equal(restored.issue, false);
+  assert.equal(restored.state.views.colors.selected, "tw-bg-red-500");
+  assert.equal(restored.state.views.tailwind.query, "");
+  assert.deepEqual(restored.state.sizes, s.sizes);
+  assert.deepEqual(restored.state.colorCollapsed, []);
+  assert.equal(restored.state.lastColor, null);
+  const clamped = readState({
+    getItem: () => JSON.stringify({ ...saved, sizes: { sidebar: 40, results: 9999 } }),
+  });
+  assert.ok(clamped.state.sizes.sidebar >= 140);
+  assert.ok(clamped.state.sizes.results <= 640);
+});
+
 test("catalog decoding accepts both raw gzip and a transparently decoded response", async () => {
   const { decodeCatalog } = await import("../src/catalog-codec.ts");
   const { gzipSync } = await import("node:zlib");

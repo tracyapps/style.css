@@ -7,6 +7,7 @@ export default function FamilyRow({
   family,
   selected,
   variant,
+  hideChips = false,
   bookmarks,
   onSelect,
   onBookmark,
@@ -15,6 +16,8 @@ export default function FamilyRow({
   family: EntryFamily;
   selected: Entry;
   variant: string;
+  /** The Colors tab keeps its chips on the always-on shelf above. */
+  hideChips?: boolean;
   bookmarks: string[];
   onSelect: (e: Entry) => void;
   onBookmark: (e: Entry) => void;
@@ -35,7 +38,7 @@ export default function FamilyRow({
       ? `${variant}:${entry.name}`
       : entry.name;
   const copyText = entry.mode === "selectors" ? entry.syntax : copyName;
-  const chips = family.kind === "chips";
+  const chips = family.kind === "chips" && !hideChips;
   const palettes = new Set(
     family.members
       .map((m) => m.name.match(/^-?[a-z][a-z-]*-([a-z]+)-\d{2,3}$/)?.[1])

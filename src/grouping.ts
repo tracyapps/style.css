@@ -190,6 +190,35 @@ export const CATEGORY_ORDER = [
   "Other",
 ] as const;
 
+/** Sidebar buckets for the Colors tab, keyed by utility stem. */
+export const COLOR_CATEGORY_ORDER = [
+  "Backgrounds",
+  "Gradients",
+  "Text",
+  "Borders",
+  "Shadows",
+  "Masks",
+  "Accents & SVG",
+] as const;
+
+export function colorStemCategory(stem: string): string {
+  if (stem === "bg") return "Backgrounds";
+  if (stem === "from" || stem === "via" || stem === "to") return "Gradients";
+  if (stem === "text" || stem === "placeholder" || stem === "decoration")
+    return "Text";
+  if (
+    /^border/.test(stem) ||
+    ["divide", "outline", "ring", "ring-offset", "inset-ring"].includes(stem)
+  )
+    return "Borders";
+  if (/^mask-/.test(stem)) return "Masks";
+  if (
+    ["shadow", "inset-shadow", "drop-shadow", "text-shadow"].includes(stem)
+  )
+    return "Shadows";
+  return "Accents & SVG";
+}
+
 /** Slot names for family keys that share a stem with different meanings. */
 const SLOTS: Record<string, string> = {
   "background-position:bg": "position",
@@ -501,6 +530,13 @@ export function displayName(meta: FamilyMeta): string {
     meta.kind === "chips" ? "color" : meta.key.match(/-(width|style|color):/)?.[1];
   const slot = inferred ?? SLOTS[meta.key] ?? "…";
   return `${meta.stem}-{${slot}}`;
+}
+
+/** The palette (or "solos") a chips entry belongs to. */
+export function chipPalette(entry: Entry): string {
+  return (
+    entry.name.match(/^-?[a-z][a-z-]*-([a-z]+)-\d{2,3}$/)?.[1] ?? "solos"
+  );
 }
 
 /** Sort chips members palette by palette, light to dark, solos last. */

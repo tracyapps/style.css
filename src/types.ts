@@ -1,4 +1,4 @@
-export type Mode = "tailwind" | "css" | "selectors";
+export type Mode = "colors" | "tailwind" | "css" | "selectors";
 export type Category = string;
 export interface Support {
   browser: string;

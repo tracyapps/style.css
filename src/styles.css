@@ -374,7 +374,7 @@ h1 {
 }
 .workspace {
   display: grid;
-  grid-template-columns: 200px 320px minmax(0, 1fr);
+  grid-template-columns: 200px 7px 320px 7px minmax(0, 1fr);
   height: 850px;
   min-height: 650px;
   border: 1px solid var(--line);
@@ -1344,7 +1344,7 @@ pre {
 }
 @media (min-width: 1450px) {
   .workspace {
-    grid-template-columns: 220px 370px minmax(0, 1fr);
+    grid-template-columns: 220px 7px 370px 7px minmax(0, 1fr);
   }
   .collage {
     width: 540px;
@@ -1369,7 +1369,7 @@ pre {
     padding: 0 24px;
   }
   .workspace {
-    grid-template-columns: 170px 270px minmax(0, 1fr);
+    grid-template-columns: 170px 7px 270px 7px minmax(0, 1fr);
   }
   .detail-panel {
     padding: 23px 21px;
@@ -1423,7 +1423,7 @@ pre {
 }
 @media (max-width: 900px) {
   .workspace {
-    grid-template-columns: 150px 240px minmax(0, 1fr);
+    grid-template-columns: 150px 7px 240px 7px minmax(0, 1fr);
   }
   .app-shell {
     padding: 0 18px;
@@ -1569,6 +1569,7 @@ pre {
   .mode-tabs {
     width: 100%;
     gap: 6px;
+    flex-wrap: wrap;
   }
   .mode-tabs button {
     flex: 1;
@@ -2243,27 +2244,106 @@ html {
 }
 .paint-wall {
   display: grid;
-  gap: 7px;
-  margin-top: 10px;
-}
-.paint-row {
-  display: grid;
-  grid-template-columns: 64px repeat(auto-fill, 52px);
   gap: 4px;
-  align-items: start;
-  justify-content: start;
+  align-content: start;
 }
-.paint-row-label {
+.paint-acc {
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.paint-acc.active {
+  border-color: var(--pink);
+}
+.paint-acc-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 6px 11px;
+}
+.paint-acc-head:hover .paint-acc-name {
+  color: var(--pink);
+}
+.acc-chevron {
+  color: var(--muted);
+  transition: rotate 0.12s ease;
+  flex-shrink: 0;
+}
+.paint-acc.open .acc-chevron {
+  rotate: 90deg;
+}
+.paint-acc-name {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  min-width: 52px;
+  text-align: left;
+  color: var(--ink);
+}
+.paint-acc.active .paint-acc-name {
+  color: var(--pink);
+}
+.paint-acc-strip {
+  height: 12px;
+  flex: 1;
+  max-width: 340px;
+  border: 1px solid #0003;
+}
+.paint-acc-count {
+  margin-left: auto;
   font-family: "Space Mono", monospace;
   font-size: 9px;
-  letter-spacing: 0.5px;
   color: var(--muted);
+}
+.paint-acc-body {
+  display: flex;
+  gap: 4px;
+  padding: 2px 11px 10px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.paint-tray {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 2px 6px;
+}
+.paint-tray-label {
+  font-family: "Space Mono", monospace;
+  font-size: 8px;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
-  padding-top: 14px;
+  color: var(--muted);
   rotate: -2deg;
 }
-.paint-row.active .paint-row-label {
-  color: var(--pink);
+.paint-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 3px 9px 3px 4px;
+}
+.paint-pill:hover {
+  border-color: var(--pink);
+}
+.paint-pill.active {
+  border-color: var(--pink);
+  box-shadow: 1px 1px 0 var(--pink);
+}
+.pill-strip {
+  width: 34px;
+  height: 12px;
+  border: 1px solid #0003;
+}
+.pill-name {
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--ink);
 }
 .chip-picker {
   border-style: solid;
@@ -2394,7 +2474,160 @@ html {
     width: 38px;
     height: 26px;
   }
-  .paint-row {
-    grid-template-columns: 58px repeat(auto-fill, 46px);
+}
+
+/* ————— Colors desk: shelf on top, reference below ————— */
+.desk-columns {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.desk-lower {
+  display: grid;
+  grid-template-columns: 320px 7px minmax(0, 1fr);
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+}
+.color-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-top: 0;
+  background: var(--surface);
+}
+.color-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 9px 13px;
+  border-bottom: 1px dashed var(--line);
+}
+.color-panel-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.color-panel-title code {
+  font-weight: 700;
+  font-size: 15px;
+}
+.color-panel-count {
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+  color: var(--muted);
+}
+.color-panel-tools {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.color-panel-tools .handwritten {
+  color: var(--muted);
+  font-size: 15px;
+}
+.panel-tool {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  border: 1px solid var(--line);
+  padding: 5px 8px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.color-wall-scroll {
+  overflow-y: auto;
+  min-height: 0;
+  padding: 10px 12px 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+/* ————— Resize handles ————— */
+.resize-handle {
+  position: relative;
+  z-index: 5;
+  touch-action: none;
+  background: transparent;
+}
+.resize-handle.x {
+  cursor: col-resize;
+  width: 7px;
+  align-self: stretch;
+}
+.resize-handle.y {
+  cursor: row-resize;
+  height: 7px;
+  width: 100%;
+  flex: none;
+}
+.resize-handle:before {
+  content: "";
+  position: absolute;
+  background: var(--line);
+  opacity: 0.55;
+  transition:
+    background 0.12s ease,
+    opacity 0.12s ease;
+}
+.resize-handle.x:before {
+  left: 3px;
+  right: 3px;
+  top: 0;
+  bottom: 0;
+}
+.resize-handle.y:before {
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  right: 0;
+}
+.resize-handle:hover:before,
+.resize-handle:active:before {
+  background: var(--pink);
+  opacity: 1;
+}
+.resize-handle:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: -2px;
+}
+@media (max-width: 760px) {
+  .resize-handle {
+    display: none;
+  }
+  .desk-columns,
+  .desk-lower {
+    display: block;
+    min-height: 0;
+  }
+  .color-panel {
+    border: 1px solid var(--line);
+    margin: 0 0 8px;
+    max-height: min(320px, 45dvh) !important;
+  }
+  .color-wall-scroll {
+    padding: 8px;
+  }
+  .color-panel-tools .handwritten {
+    display: none;
+  }
+  .show-detail .color-panel {
+    display: none;
+  }
+}
+
+/* Sticky-desk rules above precede these, so keep the mobile shelf caps last. */
+@media (max-width: 760px) {
+  .results-list {
+    max-height: calc(100dvh - 200px);
+  }
+  .color-panel {
+    max-height: min(300px, 45dvh) !important;
   }
 }
