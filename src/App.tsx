@@ -31,6 +31,7 @@ import {
   colorStemCategory,
   familyMeta,
   chipPalette,
+  PALETTE_ORDER,
 } from "./grouping";
 import { CategoryIcon, codeThemeIcons } from "./icons";
 import {
@@ -39,6 +40,7 @@ import {
   responsivePrefix,
   responsiveEntry,
 } from "./responsive";
+import { isGradientEntry } from "./demo";
 
 import type { Entry, Mode } from "./types";
 import {
@@ -66,6 +68,10 @@ const colorEntries = modeEntries.tailwind
   .filter((e) => familyMeta(e).kind === "chips")
   .map((e) => ({ ...e, category: colorStemCategory(familyMeta(e).stem) }));
 modeEntries.colors = colorEntries;
+// Colors live on their own desk now; keep the Tailwind tab chip-free.
+modeEntries.tailwind = modeEntries.tailwind.filter(
+  (e) => familyMeta(e).kind !== "chips",
+);
 const colorById = new Map(colorEntries.map((e) => [e.id, e]));
 const modeFamilies = Object.fromEntries(
   modes.map((m) => [m, groupEntries(modeEntries[m])]),
@@ -169,10 +175,17 @@ export default function App() {
   );
   const groups = useMemo(() => groupEntries(matches), [matches]);
   const rawEntry = byId.get(view.selected) || source[0];
-  const nativePrefix = responsivePrefix(rawEntry.name);
+  // A stored selection can point at a color utility from before the Colors
+  // tab split those off; fall back to the desk's first entry.
+  const staleColor =
+    !colorMode &&
+    familyMeta(rawEntry).kind === "chips" &&
+    rawEntry.mode === "tailwind";
+  const resolved = staleColor ? (source[0] ?? rawEntry) : rawEntry;
+  const nativePrefix = responsivePrefix(resolved.name);
   const baseEntry = nativePrefix
-    ? byId.get(`tw-${rawEntry.name.slice(nativePrefix.length + 1)}`) || rawEntry
-    : rawEntry;
+    ? byId.get(`tw-${resolved.name.slice(nativePrefix.length + 1)}`) || resolved
+    : resolved;
   const entry = colorMode
     ? (colorById.get(baseEntry.id) ?? baseEntry)
     : responsiveEntry(baseEntry, variant || nativePrefix);
@@ -181,6 +194,19 @@ export default function App() {
     : state.mode === "tailwind"
       ? tailwindFamilies.get(familyKey(baseEntry))
       : undefined;
+  // Cross-link: utilities with a paint sibling ("paint border-2 in color")
+  // jump straight to that shelf on the Colors desk.
+  const colorLinkFamily = (() => {
+    if (state.mode !== "tailwind") return undefined;
+    if (isGradientEntry(baseEntry)) return colorFamilies.get("chips:from");
+    const tokens = baseEntry.name.replace(/^-/, "").split("-");
+    for (let end = tokens.length; end >= 1; end--) {
+      const stem = tokens.slice(0, end).join("-");
+      const match = colorFamilies.get(`chips:${stem}`);
+      if (match) return match;
+    }
+    return undefined;
+  })();
   const dockDesk = () => {
     if ((deskRef.current?.getBoundingClientRect().top || 0) > 1)
       deskRef.current?.scrollIntoView({ block: "start" });
@@ -329,6 +355,28 @@ export default function App() {
   const select = (e: Entry) => {
     dockDesk();
     const prefix = responsivePrefix(e.name);
+    // Color utilities live on the Colors desk; cross-links land there.
+    if (e.mode === "tailwind" && familyMeta(e).kind === "chips") {
+      const pick = e.name.match(/-([a-z]+)-(\d{2,3})$/);
+      setState((s) => ({
+        ...s,
+        mode: "colors",
+        views: {
+          ...s.views,
+          tailwind: {
+            ...s.views.tailwind,
+            scroll: listRef.current?.scrollTop || 0,
+          },
+          colors: { ...s.views.colors, selected: e.id },
+        },
+        recent: [e.id, ...s.recent.filter((id) => id !== e.id)].slice(0, 24),
+        lastColor: pick
+          ? { palette: pick[1], shade: pick[2] }
+          : s.lastColor,
+      }));
+      setMobileDetail(true);
+      return;
+    }
     setState((s) => ({
       ...s,
       mode: e.mode,
@@ -385,27 +433,44 @@ export default function App() {
   const selectInMode = colorMode ? commitColors : select;
   const setSize = (patch: Partial<AppState["sizes"]>) =>
     setState((s) => ({ ...s, sizes: { ...s.sizes, ...patch } }));
+  // Folded by default: until the painter toggles a row, every palette is
+  // closed except the one the current selection comes from.
+  const ALL_PALETTES = [...PALETTE_ORDER, "solos"];
+  const materialize = (s: AppState): string[] =>
+    s.colorCollapsed ??
+    ALL_PALETTES.filter(
+      (p) =>
+        p !==
+        chipPalette(
+          colorById.get(s.views.colors.selected) ?? colorEntries[0],
+        ),
+    );
+  const collapsedPalettes =
+    state.colorCollapsed ??
+    ALL_PALETTES.filter((p) => p !== (colorMode ? chipPalette(entry) : ""));
   const togglePalette = (palette: string) =>
-    setState((s) => ({
-      ...s,
-      colorCollapsed: s.colorCollapsed.includes(palette)
-        ? s.colorCollapsed.filter((x) => x !== palette)
-        : [...s.colorCollapsed, palette],
-    }));
+    setState((s) => {
+      const current = materialize(s);
+      return {
+        ...s,
+        colorCollapsed: current.includes(palette)
+          ? current.filter((x) => x !== palette)
+          : [...current, palette],
+      };
+    });
   const collapseAllPalettes = () =>
-    setState((s) => ({
-      ...s,
-      colorCollapsed: [
-        ...new Set((family?.members ?? colorEntries).map(chipPalette)),
-      ],
-    }));
+    setState((s) => ({ ...s, colorCollapsed: [...ALL_PALETTES] }));
   const expandAllPalettes = () =>
     setState((s) => ({ ...s, colorCollapsed: [] }));
-  const inCurrentMode = (id: string) =>
-    colorMode ? colorById.has(id) : byId.get(id)?.mode === state.mode;
+  const inCurrentMode = (id: string) => {
+    if (colorMode) return colorById.has(id);
+    const e = byId.get(id);
+    if (!e || e.mode !== state.mode) return false;
+    return state.mode !== "tailwind" || familyMeta(e).kind !== "chips";
+  };
   const recent = state.recent
     .map((id) => (colorMode ? colorById.get(id) : byId.get(id)))
-    .filter((e): e is Entry => !!e && (colorMode || e.mode === state.mode))
+    .filter((e): e is Entry => !!e && inCurrentMode(e.id))
     .slice(0, 4);
   const common = (
     colorMode
@@ -452,6 +517,27 @@ export default function App() {
                 : "Try a different word or loosen the filters."}
             </p>
             <button onClick={clearFilters}>Show everything</button>
+            {state.mode === "tailwind" && view.query.trim() && (
+              <button
+                onClick={() =>
+                  setState((s) => ({
+                    ...s,
+                    mode: "colors",
+                    views: {
+                      ...s.views,
+                      colors: {
+                        ...s.views.colors,
+                        query: s.views.tailwind.query,
+                        category: "All",
+                        scope: "all",
+                      },
+                    },
+                  }))
+                }
+              >
+                Look for “{view.query.trim()}” in Colors →
+              </button>
+            )}
           </div>
         ) : (
           groups.slice(0, pageSize).map((group) => (
@@ -506,6 +592,7 @@ export default function App() {
           family={family}
           prefix={variant || nativePrefix}
           hideWall={colorMode}
+          colorLink={colorLinkFamily}
           state={state}
           save={save}
           select={select}
@@ -845,7 +932,7 @@ export default function App() {
                       selected={entry}
                       onSelect={commitColors}
                       copy={copy}
-                      collapsed={state.colorCollapsed}
+                      collapsed={collapsedPalettes}
                       onToggle={togglePalette}
                       onCollapseAll={collapseAllPalettes}
                       onExpandAll={expandAllPalettes}

@@ -108,7 +108,7 @@ test("a desk saved before the Colors tab keeps its bookmarks and gains the new s
   assert.equal(restored.state.views.colors.selected, "tw-bg-red-500");
   assert.equal(restored.state.views.tailwind.query, "");
   assert.deepEqual(restored.state.sizes, s.sizes);
-  assert.deepEqual(restored.state.colorCollapsed, []);
+  assert.equal(restored.state.colorCollapsed, null);
   assert.equal(restored.state.lastColor, null);
   const clamped = readState({
     getItem: () => JSON.stringify({ ...saved, sizes: { sidebar: 40, results: 9999 } }),

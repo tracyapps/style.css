@@ -27,8 +27,11 @@ export interface AppState {
   theme: "dark" | "light" | "system";
   codeTheme: "midnight" | "candy" | "paper";
   sizes: PanelSizes;
-  /** Palette rows the painter collapsed; empty means every row is open. */
-  colorCollapsed: string[];
+  /**
+   * Palette rows the painter collapsed. Null means "folded by default":
+   * everything closed except the palette of the current selection.
+   */
+  colorCollapsed: string[] | null;
   /** The last shade picked on the paint wall, carried across families. */
   lastColor: ColorPick | null;
 }
@@ -65,7 +68,7 @@ export const defaults = (): AppState => ({
   theme: "dark",
   codeTheme: "midnight",
   sizes: defaultSizes(),
-  colorCollapsed: [],
+  colorCollapsed: null,
   lastColor: null,
 });
 const modes: Mode[] = ["colors", "tailwind", "css", "selectors"];
@@ -138,7 +141,7 @@ export function readState(storage: Pick<Storage, "getItem">): {
       ? parsed.colorCollapsed.filter(
           (x: unknown): x is string => typeof x === "string",
         )
-      : [];
+      : null;
     parsed.lastColor =
       parsed.lastColor &&
       typeof parsed.lastColor.palette === "string" &&

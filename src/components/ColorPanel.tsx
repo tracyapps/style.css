@@ -1,6 +1,7 @@
 import { ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 import type { Entry } from "../types";
 import type { EntryFamily } from "../families";
+import { chipPalette } from "../grouping";
 import { PaintChipWall } from "./PaintChips";
 import CopyButton from "./CopyButton";
 import ResizeHandle from "./ResizeHandle";
@@ -33,7 +34,8 @@ export default function ColorPanel({
   wallMax: number;
   onWallMax: (n: number) => void;
 }) {
-  const allCollapsed = collapsed.length > 0;
+  const palettes = new Set(family.members.map(chipPalette));
+  const allCollapsed = [...palettes].every((p) => collapsed.includes(p));
   return (
     <section
       className="color-panel"

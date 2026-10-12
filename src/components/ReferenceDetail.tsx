@@ -9,6 +9,7 @@ import {
   SlidersHorizontal,
   Plus,
   X,
+  Palette,
 } from "lucide-react";
 import type { Entry } from "../types";
 import type { AppState } from "../state";
@@ -124,12 +125,15 @@ export default function Detail({
   family,
   prefix,
   hideWall = false,
+  colorLink,
 }: {
   entry: Entry;
   family?: EntryFamily;
   prefix: string;
   /** The Colors tab shows its chip wall on the always-on shelf above. */
   hideWall?: boolean;
+  /** Paint-chip sibling family on the Colors desk, for cross-linking. */
+  colorLink?: EntryFamily;
   state: AppState;
   save: (s: AppState) => void;
   select: (e: Entry) => void;
@@ -579,6 +583,15 @@ export default function Detail({
             ))}
           </div>
         </section>
+      )}
+      {colorLink && (
+        <button
+          className="cross-link paint-link"
+          onClick={() => select(colorLink.representative)}
+        >
+          <Palette size={15} /> Paint it: {colorLink.name} on the color shelf
+          <ArrowUpRight size={15} />
+        </button>
       )}
       {cssEntry && (
         <button className="cross-link" onClick={() => select(cssEntry)}>
